@@ -1,0 +1,41 @@
+// codeguard:components:start
+// Source: client/wrangler.jsonc
+// Declarations and references retain their native language names and order.
+// codeguard:components:end
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ahmad-makatreh-site",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-05",
+  "workers_dev": false,
+  "vars": {
+    "MEDIA_PROVIDER": "supabase",
+    "SUPABASE_URL": "https://kghmejpjvbmcivnlnkgf.supabase.co",
+    "SUPABASE_STORAGE_BUCKET": "ahmad-makatreh-media",
+    "ADMIN_ORIGIN": "https://admin.ahmad-makatreh.vip",
+    "TURNSTILE_ALLOWED_HOSTNAMES": "ahmad-makatreh.vip",
+    "BREVO_SENDER_EMAIL": "info@ahmad-makatreh.vip",
+    "BREVO_RECIPIENT_EMAIL": "info@ahmad-makatreh.vip"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ahmad-makatreh",
+      "database_id": "c1653642-1587-474e-8160-aa45ffdee878",
+      "migrations_dir": "../server/cloudflare/migrations"
+    }
+  ],
+  "ratelimits": [
+    { "name": "BOOKING_RATE_LIMITER", "namespace_id": "10122040", "simple": { "limit": 9, "period": 60 } },
+    { "name": "ADMIN_RATE_LIMITER", "namespace_id": "10122041", "simple": { "limit": 120, "period": 60 } },
+    { "name": "ADMIN_REPLY_RATE_LIMITER", "namespace_id": "10122042", "simple": { "limit": 6, "period": 60 } },
+    { "name": "ADMIN_UPLOAD_RATE_LIMITER", "namespace_id": "10122043", "simple": { "limit": 6, "period": 60 } }
+  ],
+  "triggers": { "crons": ["0 */6 * * *", "0 */3 * * *"] },
+  "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": ["/api", "/api/*"],
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

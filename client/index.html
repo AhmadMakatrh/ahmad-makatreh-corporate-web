@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!-- codeguard:components:start
+Source: client/index.html
+Declarations and references retain their native language names and order.
+codeguard:components:end
+-->
+<!-- The file was created by Ahmed Al-Makhatreh. -->
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https: wss: https://api.ahmad-makatreh.vip; frame-src 'self' https://challenges.cloudflare.com; upgrade-insecure-requests;" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover" />
+
+  <!-- Match the preloader before the application's styles and JavaScript arrive. -->
+  <style>
+    html, body { background: var(--portfolio-green, #174b3e); }
+  </style>
+
+  <!-- Prevent language and direction flash before client hydration -->
+  <script>
+// codeguard:components:start
+// codeguard:components:end
+    (function () {
+      try {
+        var saved = localStorage.getItem('siteLanguage');
+        var lang = /^\/page\/ar(?:\/|$)/.test(location.pathname) ? 'ar'
+          : document.documentElement.dataset.seoLanguage === 'en' ? 'en'
+          : saved === 'ar' || saved === 'en' ? saved : 'en';
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- seo:start -->
+  <title>Ahmad Makatreh — Software Engineer | Web and Mobile Applications</title>
+  <meta name="description" content="أحمد المخاترة، مهندس برمجيات من الأردن. أعمل على تطوير تطبيقات الويب والواجهة الخلفية وقواعد البيانات وأنظمة اللعب، وأعرض هنا مشاريعي ومساهماتي." />
+  <meta name="keywords" content="أحمد المخاترة, مهندس برمجيات, تطوير الويب, تطوير الألعاب, Al Karak, Jordan, Software Engineer, Unreal Engine, Laravel, Next.js, React, C#" />
+  <meta name="robots" content="index, follow" />
+  <meta name="geo.placename" content="Al Karak, Jordan" />
+  <meta name="geo.region" content="JO-KA" />
+  <link rel="canonical" href="https://ahmad-makatreh.vip" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="أحمد المخاترة — مهندس برمجيات" />
+  <meta property="og:description" content="أعمل على تطوير تطبيقات الويب والواجهة الخلفية وقواعد البيانات وأنظمة اللعب. تعرف إلى مشاريعي ومساهماتي." />
+  <meta property="og:image" content="https://ahmad-makatreh.vip/favicon.svg" />
+  <meta property="og:url" content="https://ahmad-makatreh.vip" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="أحمد المخاترة | Ahmad Makatreh — Software Engineer" />
+  <meta name="twitter:description" content="أعمل على تطوير تطبيقات الويب والواجهة الخلفية وقواعد البيانات وأنظمة اللعب. تعرف إلى مشاريعي ومساهماتي." />
+  <meta name="twitter:image" content="https://ahmad-makatreh.vip/favicon.svg" />
+  <!-- seo:end -->
+
+  <!-- Typography: Cairo for Arabic, Syne for Display, Inter for English Body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa&family=Kalam&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome Icons CDN -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+
+</head>
+<body class="bg-[var(--portfolio-green)] text-[#f4f4f5] antialiased overflow-x-hidden select-none md:select-auto">
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!-- codeguard:components:start
+Original AM monogram and outlined wordmark for the ivory, forest-green and copper identity.
+SVG paths keep the mark independent of installed fonts and language shaping at runtime.
+codeguard:components:end -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>Ahmad Makatreh</title>
+  <rect width="64" height="64" rx="14" fill="#174b3e"/>
+  <g transform="translate(7 9) scale(.6)">
+  <g fill="none" stroke="#f8f7f1" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M7 60 28 14 49 60V14l16 25 16-25v46"/>
+    <path d="M17 40h22" stroke="#bd7852" stroke-width="5"/>
+  </g>
+  <path d="m65 55 5 5-5 5-5-5Z" fill="#bd7852"/>
+  </g>
+</svg>

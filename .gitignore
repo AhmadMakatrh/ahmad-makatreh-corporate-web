@@ -1,0 +1,58 @@
+# codeguard:components:start
+# Source: .gitignore
+# Declarations and references retain their native language names and order.
+# codeguard:components:end
+# .NET & ASP.NET Core
+bin/
+obj/
+publish/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+appsettings.*.local.json
+
+# Local runtime inquiry data & PII protection
+App_Data/
+**/App_Data/
+inquiries.json
+**/inquiries.json
+
+# Node & Vite
+node_modules/
+dist/
+dist-ssr/
+dist-admin/
+*.local
+*.zip
+
+# Environment Variables & Secrets
+.env
+.env.production
+.env.local
+.env.*.local
+
+# Cloudflare local bindings and secrets
+server/cloudflare/.wrangler/
+server/cloudflare/.dev.vars*
+!server/cloudflare/.dev.vars.example
+.wrangler/
+.wrangler-*/
+.superpowers/
+**/.dev.vars*
+!**/.dev.vars.example
+**/.env*
+!**/.env.example
+
+# IDE & OS Files
+.vscode/
+.idea/
+.cursor/
+.claude/
+AGENTS.md
+screenshots/
+captures/
+*.swp
+*.DS_Store
+Thumbs.db
