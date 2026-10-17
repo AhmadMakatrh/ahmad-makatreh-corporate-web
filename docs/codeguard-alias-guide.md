@@ -1,170 +1,84 @@
 # نظام الكود النظيف — Clean Code System
 
-This is the project's name for its existing code organization, reuse, import, and native-alias rules. The `codeguard:components:start/end` markers retain their existing syntax.
+This guide records the repository's existing conventions for organization, reuse, imports, and aliases. Apply them within the scope of a change while preserving behavior and public contracts. The [architecture map](current-architecture.md) identifies the owners of shared code.
 
-## Scope and structure
+## Organization and reuse
 
-The completion pass covers owned production source and tests in the public React app, administration, Cloudflare API, retained .NET backend, Python helper, embedded authentication JavaScript, styles, markup, handwritten SQL, and comment-capable project/operation configuration. Generated dependency/build output, generated EF migrations, and binary assets retain their original ownership.
+- Read the implementation and its consumers before editing shared code.
+- Reuse an existing function or component before adding another implementation. Keep helpers with their owning feature unless multiple consumers need them.
+- Keep API handlers, persistence, validation, UI state, and presentation in their existing modules. Do not move unrelated code as part of a small fix.
+- Preserve exported names, serialized property keys, routes, and database identifiers unless the task requires a contract change.
+- Keep generated files, dependencies, and build output under their generators' ownership. Edit source inputs instead.
 
-The [alias index](alias-index.md) is extracted from current source: **2962 aliases in 246 files**. It includes 969 JavaScript native import bindings, 814 local immutable references, 130 native object-destructuring aliases, 124 native React dispatcher bindings, 905 C# type aliases, 17 C# constant aliases, and 3 Python module aliases. There are no owned static JavaScript import cycles in the inspected graph.
+## JavaScript imports and references
 
-Every owned JavaScript/JSX program has one `codeguard:components:start/end` section. The embedded authentication script is a separate program with its own section. Imports, module definitions, and aliases keep their initialization order. Runtime entry statements follow the section. Scoped helpers remain in their owning closure; their aliases are initialized at the first point compatible with target initialization and React analysis. C# using aliases occupy the file section; type members stay inside their declaring type. Constant aliases use native `const` declarations in their owning type/block.
+Use native language aliases rather than wrapper functions that merely forward calls:
 
-Short helpers such as `id`, `text`, `object`, `string`, and helpers used once receive the same reference treatment as other named helpers. Test imports/helpers, callbacks returned by factories or conditional expressions, named service adapters, and callable object destructuring are included. New local aliases generally use the original name plus `Ref`; existing meaningful aliases remain intact. An alias calls the original implementation and is also used when passing that component as a value or rendering it in JSX. Object shorthand expansions and destructuring preserve the original property key.
+```js
+import { applyDataOverrides as mergeDataOverrides } from '../providers/publishedSiteContext.js';
+```
 
-React dispatcher slots such as `const [value, setValue] = useState(...)` already supply a native local alias for the unnamed returned dispatcher. Those bindings are included in the index as `useState()[1]` (or the corresponding reducer/transition hook), used directly, and keep the compiler's direct hook-result relationship. They do not receive a second snapshot binding. This is native alias coverage, not a short-helper exemption.
+- Named imports use meaningful local aliases. Existing meaningful aliases remain valid; a local reusable helper or immutable reference generally uses its original name plus `Ref`.
+- Default and namespace imports already bind a local name and do not need another alias.
+- Use the alias at call sites, when passing a reusable function as a value, and when rendering an aliased component in JSX.
+- Preserve original object keys when expanding shorthand or aliasing destructured properties.
+- Keep initialization order intact. Do not access a `const` alias before it is initialized or move a scoped helper outside its owning closure.
+- Short helpers, helpers used once, test helpers, named service adapters, and factory-returned callables follow the same convention as other reusable components. There is no exemption based on size or number of consumers.
+- Parameters, loop variables, mutable state, and individual request/calculation results do not need extra snapshot bindings. Do not extract an object method if doing so changes its receiver.
 
-Parameters, loop variables, mutable state, and temporary results of individual requests/calculations are distinguished from named reusable components. No extra bindings are made solely for those temporary values. Default and namespace imports already provide native local aliases; they do not receive another wrapper or snapshot.
+## React constraints
 
-## Shared implementation and consumers
+React's built-in hooks retain their canonical import and call names so hook analysis and React Compiler can recognize them. Custom hook aliases must retain a `use` prefix.
 
-| Original component | Owner | Consumers |
-| --- | --- | --- |
-| `emptyLocalizedText` | `client/src/admin/contentCollections.js` | Collection, pricing, and page editors; fresh localized object per call |
-| `moveRecord` | `client/src/admin/contentCollections.js` | Collection, pricing, and page editors; one immutable reorder implementation |
-| `offerPriceForPackage` | `client/src/data/serviceCatalog.js` | Public pricing and admin price suggestion |
-| `createApi` | `server/cloudflare/src/index.js` | Public/admin Worker entry points and tests |
-| `createAdminClient` | `client/src/admin/adminApi.js` | Admin editors, session refresh, CSRF, reads, writes, and uploads |
-| `ProjectMedia` → `WorkMedia` | `client/src/components/ui/ProjectMedia.jsx` | Contribution and case-study pages share the slider, captions, and gallery opener; cards retain their project navigation |
-| `ProjectGallery` → `ImageGallery` | `client/src/components/ui/ProjectGallery.jsx` | `ProjectMedia` supplies localized image items, active index, selection dispatcher, name, and close callback; gallery owns native dialog, glass styling, keyboard/focus, zoom, fullscreen, and image failure feedback |
-| `useImageNavigation` → `useSlides` | `client/src/hooks/useImageNavigation.js` | `ProjectMedia` and `ProjectGallery` share directional transitions and mouse/touch swipes. Inputs are current index, count, source key, selection callback, language, and enabled flag. Outputs are the image ref, select/move helpers, and pointer handlers. Existing motion preferences disable animations; zoom panning remains native. |
-| `TechnicalText` → `TechnicalTextRef` | `client/src/components/CaseStudy/TechnicalText.jsx` | Case studies, contribution copy, Work roles and About intro use one safe text formatter for isolated LTR technical badges within either locale. |
+```js
+import { useState } from 'react';
 
-The existing architecture and deployment boundaries remain in [current architecture](current-architecture.md). No files were moved and no dependencies or lockfiles were changed in this completion pass.
+const [value, setValue] = useState('');
+```
 
-## Actual language and framework constraints
+The dispatcher returned by a hook already has a local binding such as `setValue`. Use that binding directly; do not add a second snapshot alias. Keep hooks at the top level of their component or custom hook and preserve effect dependencies.
 
-| Construct | Required treatment and reason |
+React class lifecycle names such as `render`, `getDerivedStateFromError`, and `componentDidUpdate` remain unchanged because React calls those contracts.
+
+## Source sections
+
+Owned source files use their language's comment syntax for the existing sections:
+
+```js
+// codeguard:components:start
+// codeguard:defines: exportedFunction, SharedComponent
+// Imports and definitions remain in their required initialization order.
+// codeguard:components:end
+```
+
+Maintain the markers when editing a file. Executable embedded JavaScript has its own section. Runtime entry statements stay after the definitions they use; scoped helpers remain within their valid scope. These comments do not replace meaningful module boundaries or validation.
+
+## Other language constraints
+
+| Construct | Convention |
 | --- | --- |
-| React built-in Hooks | Their canonical import/call names are retained so React Compiler and hook dependency analysis recognize state, effects, memoization, and stable refs. Renaming hid dependency checks or introduced analysis warnings. Local component callbacks still have aliases; the admin effect creates its helper alias inside the effect to preserve dependency analysis. |
-| React class lifecycle methods | `ErrorBoundary` retains native `render`, `getDerivedStateFromError`, and `componentDidUpdate` names because React invokes those contracts. Its imported base class, consumers, and reload helper use native import/reference aliases. |
-| C# methods and live type members | C# `using` aliases name types/namespaces, not methods or live member slots. Method overload resolution, receiver binding, fields, and properties remain native; no delegate/property wrappers are invented. Explicit immutable `const` values have native constant aliases where consumed locally. |
-| C# private/protected nested types | They cannot be referenced from an alias outside their declaring type. The original scoped type reference remains. |
-| C# local generic parameters | A file-level alias cannot capture a type parameter declared in a method/type scope. Concrete closed generic types have aliases; parameterized families remain native. |
-| `nameof`, public exports, entry points, and serialized keys | Original contract names and generated string values are preserved. Consumer references use aliases where supported; definitions and property keys keep the original identity. |
-| Mutable bindings and host/object members | Copying a mutable binding can freeze an old value. Extracting a method can change its receiver. These remain live native references within their owner. |
-| CSS, HTML/SVG, SQL, and declarative configuration | Native comment sections are included. Selectors, DOM/schema identifiers, custom properties, and configuration keys retain their native reference syntax; these languages do not provide general callable/type alias declarations for those constructs. Existing CSS `var(...)` references are preserved. Embedded executable JavaScript is handled as JavaScript. |
-| Strict JSON | JSON grammar rejects comments. These files retain their native schema and exact data, without injected markers. JSONC files do contain valid comment sections; the preview-config test now uses the installed Wrangler JSONC reader and retains all configuration assertions. |
-| Generated and third-party files | The original request excludes rewriting them. Their generators/build/dependency inputs remain the source of truth. Binary images/PDFs do not accept source-code sections. Text SVG files are included through XML comments. |
+| C# types and namespaces | Use native `using` aliases where valid. A file-level alias cannot capture a local generic parameter or access a private nested type. |
+| C# methods, fields, and properties | Keep native member references, overload resolution, and receiver binding. Do not invent delegates or property wrappers to simulate aliases. |
+| C# constants | Explicit immutable constants consumed locally use native `const` aliases in their owning type or block. Preserve `nameof` values and serialized identities. |
+| Python imports | Use native `import ... as ...` bindings. |
+| CSS, HTML/SVG, SQL, and declarative configuration | Keep native identifiers and reference syntax. Use valid comment sections where the language permits them; do not create substitute selectors or schema names. |
+| Strict JSON | Preserve the schema without comments or markers; JSONC permits comments. |
+| Generated or third-party files and binary assets | Preserve generator/dependency ownership. Do not inject source markers. |
 
-There is no exception based on a helper being short, a component being used once, a file being a test, or HTML/CSS/SQL/JSONC accepting comments.
+## Shared implementations
 
-## Canonical React Hook locations
+These are common reuse points; consult their current exports rather than maintaining a separate per-symbol inventory.
 
-| Source | Framework imports retained |
+| Responsibility | Source |
 | --- | --- |
-| `client/src/App.jsx` | `useCallback`, `useState` |
-| `client/src/admin/AdminApp.jsx` | `useCallback`, `useEffect`, `useRef`, `useState` |
-| `client/src/admin/BackupEditor.jsx` | `useRef`, `useState` |
-| `client/src/admin/CollectionEditor.jsx` | `useState` |
-| `client/src/admin/ContentEditor.jsx` | `useMemo`, `useState` |
-| `client/src/admin/DocumentEditor.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/admin/DocumentHistory.jsx` | `useRef`, `useState` |
-| `client/src/admin/InquiryActions.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/admin/InquiryBackupImporter.jsx` | `useRef`, `useState` |
-| `client/src/admin/InquiryInbox.jsx` | `useCallback`, `useEffect`, `useRef`, `useState` |
-| `client/src/admin/MediaLibrary.jsx` | `useEffect`, `useId`, `useRef`, `useState` |
-| `client/src/admin/PagesEditor.jsx` | `useState` |
-| `client/src/admin/PricingEditor.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/components/Background/AmbientBackground.jsx` | `useEffect`, `useRef` |
-| `client/src/components/ContextMenu/ContextMenu.jsx` | `useEffect`, `useLayoutEffect`, `useRef`, `useState` |
-| `client/src/components/CustomCursor/CustomCursor.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/components/Header/Header.jsx` | `useCallback`, `useEffect`, `useRef`, `useState` |
-| `client/src/components/Header/MobileNav.jsx` | `useEffect`, `useRef` |
-| `client/src/components/LaunchOffer/LaunchOffer.jsx` | `useLayoutEffect`, `useMemo`, `useRef` |
-| `client/src/components/Preloader/Preloader.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/components/ui/MagneticButton.jsx` | `useRef` |
-| `client/src/components/ui/MobileEyeCta.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/components/ui/ProjectMedia.jsx` | `useState` |
-| `client/src/components/ui/ProjectGallery.jsx` | `useId`, `useLayoutEffect`, `useRef`, `useState` |
-| `client/src/hooks/useInitialSectionAnchor.js` | `useEffect` |
-| `client/src/hooks/useImageNavigation.js` | `useLayoutEffect`, `useRef` |
-| `client/src/hooks/useLanguage.js` | `useContext` |
-| `client/src/hooks/useNavigation.js` | `useContext` |
-| `client/src/hooks/usePortfolioMotion.js` | `useLayoutEffect` |
-| `client/src/hooks/useReducedMotion.js` | `useContext` |
-| `client/src/hooks/useSiteData.js` | `useMemo` |
-| `client/src/pages/About/AboutPage.jsx` | `useEffect` |
-| `client/src/pages/CaseStudyPage.jsx` | `useEffect` |
-| `client/src/pages/ContentPage.jsx` | `useEffect` |
-| `client/src/pages/ProjectContributionPage.jsx` | `useEffect` |
-| `client/src/pages/Services/ServicesPage.jsx` | `useEffect` |
-| `client/src/pages/WorkPage.jsx` | `useEffect` |
-| `client/src/providers/LanguageProvider.jsx` | `useCallback`, `useEffect`, `useState` |
-| `client/src/providers/MotionProvider.jsx` | `useCallback`, `useState`, `useSyncExternalStore` |
-| `client/src/providers/NavigationProvider.jsx` | `useCallback`, `useEffect`, `useState` |
-| `client/src/providers/PublishedSiteProvider.jsx` | `useCallback`, `useEffect`, `useMemo`, `useState` |
-| `client/src/providers/publishedSiteContext.js` | `useContext` |
-| `client/src/routes/AppRoutes.jsx` | `useEffect`, `useRef` |
-| `client/src/sections/Booking/BookingSection.jsx` | `useEffect`, `useRef`, `useState` |
-| `client/src/sections/Journal/ArticleView.jsx` | `useEffect`, `useState` |
-| `client/src/sections/Journal/JournalSection.jsx` | `useEffect`, `useState` |
-| `client/src/sections/Works/WorksSection.jsx` | `useCallback`, `useEffect`, `useMemo`, `useRef`, `useState` |
-| `client/tests/errorBoundary.test.js` | `useState` |
-| `client/tests/providerContexts.test.js` | `useEffect` |
-| `client/tests/reactWarnings.test.js` | `useLayoutEffect`, `useState` |
+| Localized values and immutable collection reordering | `client/src/admin/contentCollections.js` |
+| Package offer calculation | `client/src/data/serviceCatalog.js` |
+| Admin requests, sessions, CSRF, and response caching | `client/src/admin/adminApi.js` |
+| Project slider and enlarged gallery | `client/src/components/ui/ProjectMedia.jsx`, `client/src/components/ui/ProjectGallery.jsx` |
+| Image selection, directional transitions, and swipes | `client/src/hooks/useImageNavigation.js` |
+| Direction-safe technical text | `client/src/components/CaseStudy/TechnicalText.jsx` |
+| Shared Worker API | `server/cloudflare/src/index.js` |
 
-## Native React dispatcher aliases
+## Reviewing a change
 
-These existing positional bindings are used directly and are also mapped in the alias index.
-
-| Source | Native local names |
-| --- | --- |
-| `client/src/App.jsx` | `setSiteReady` |
-| `client/src/admin/AdminApp.jsx` | `setChecking`, `setDirty`, `setError`, `setLoggingOut`, `setLogoutError`, `setRetry`, `setSession`, `setTab` |
-| `client/src/admin/BackupEditor.jsx` | `setBackup`, `setBusy`, `setCurrent`, `setError`, `setKey`, `setNotice`, `setSource` |
-| `client/src/admin/CollectionEditor.jsx` | `setError`, `setSelected`, `setSlug` |
-| `client/src/admin/ContentEditor.jsx` | `setGroup`, `setLimit`, `setSearch` |
-| `client/src/admin/DocumentEditor.jsx` | `setBusy`, `setDocument`, `setDraft`, `setError`, `setNotice`, `setReload`, `setSavedJson` |
-| `client/src/admin/DocumentHistory.jsx` | `setBusy`, `setError`, `setPage` |
-| `client/src/admin/InquiryActions.jsx` | `setAttempted`, `setBody`, `setBusy`, `setError`, `setNotes`, `setNotice`, `setOperationId`, `setReplies`, `setResult`, `setSubject` |
-| `client/src/admin/InquiryBackupImporter.jsx` | `setBackup`, `setBusy`, `setError`, `setNotice` |
-| `client/src/admin/InquiryInbox.jsx` | `setActionsSaving`, `setCursors`, `setDetail`, `setDetailError`, `setDetailRefresh`, `setDraft`, `setError`, `setExporting`, `setFilters`, `setFiltersOpen`, `setLoading`, `setNewStatus`, `setNotice`, `setPage`, `setRefresh`, `setSaving`, `setSelected` |
-| `client/src/admin/MediaLibrary.jsx` | `setBusy`, `setCursor`, `setError`, `setFile`, `setNotice`, `setOpen`, `setPage`, `setPrevious`, `setReload`, `setUploadId` |
-| `client/src/admin/PagesEditor.jsx` | `setLanguage`, `setPreview`, `setSectionType`, `setSelected`, `setTemplate` |
-| `client/src/admin/PricingEditor.jsx` | `setDraft`, `setSelected`, `setTab` |
-| `client/src/components/ContextMenu/ContextMenu.jsx` | `setBusy`, `setError`, `setMenu` |
-| `client/src/components/CustomCursor/CustomCursor.jsx` | `setIsHovered`, `setIsVisible` |
-| `client/src/components/Header/Header.jsx` | `setMobileMenuOpen` |
-| `client/src/components/Preloader/Preloader.jsx` | `setInitialLoading` |
-| `client/src/components/ui/MobileEyeCta.jsx` | `setIsBlinking`, `setIsPressed` |
-| `client/src/components/ui/ProjectMedia.jsx` | `setActiveIndex`, `setPortraitSources`, `setGalleryOpen` |
-| `client/src/components/ui/ProjectGallery.jsx` | `setZoomed`, `setFullscreen`, `setFullscreenError`, `setFailedSource` |
-| `client/src/providers/LanguageProvider.jsx` | `setLanguage`, `setPendingLanguage` |
-| `client/src/providers/MotionProvider.jsx` | `setMotionPaused` |
-| `client/src/providers/NavigationProvider.jsx` | `setCurrentRoute` |
-| `client/src/providers/PublishedSiteProvider.jsx` | `setAttempt`, `setClock`, `setError`, `setLoaded`, `setSnapshot` |
-| `client/src/sections/Booking/BookingSection.jsx` | `setFormData`, `setIsSubmitting`, `setSubmissionStatus`, `setTurnstileToken` |
-| `client/src/sections/Journal/ArticleView.jsx` | `setResult` |
-| `client/src/sections/Journal/JournalSection.jsx` | `setResult` |
-| `client/src/sections/Works/WorksSection.jsx` | `setActiveIndex`, `setFocused`, `setHovered`, `setInView`, `setPageVisible` |
-| `client/tests/errorBoundary.test.js` | `setDraft`, `setPage` |
-| `client/tests/reactWarnings.test.js` | `setArticles`, `setLanguage`, `setSlug` |
-
-## Remaining scoped C# cases
-
-These are the concrete locations identified by semantic analysis; duplicate syntax nodes on the same line are combined.
-
-| Source | Line | Constraint |
-| --- | --- | --- |
-| `server/src/AhmadMakatreh.Api/Security/AdminAccess.cs` | 76 | private/protected nested types cannot be named by a file-level using alias |
-| `server/src/AhmadMakatreh.Domain/Entities/Inquiry.cs` | 51 | nameof preserves the original identifier string |
-| `server/src/AhmadMakatreh.Domain/Entities/Inquiry.cs` | 53 | nameof preserves the original identifier string |
-| `server/src/AhmadMakatreh.Domain/Entities/Inquiry.cs` | 55 | nameof preserves the original identifier string |
-| `server/src/AhmadMakatreh.Domain/Entities/Inquiry.cs` | 57 | nameof preserves the original identifier string |
-| `server/src/AhmadMakatreh.Infrastructure/BotVerification/CloudflareTurnstileVerificationService.cs` | 105 | private/protected nested types cannot be named by a file-level using alias |
-| `server/src/AhmadMakatreh.Infrastructure/Persistence/BookingAbuseHasher.cs` | 31 | nameof preserves the original identifier string |
-| `server/src/AhmadMakatreh.Infrastructure/Persistence/DevJson/DevJsonInquiryRepository.cs` | 50 | private/protected nested types cannot be named by a file-level using alias |
-| `server/src/AhmadMakatreh.Infrastructure/Persistence/DevJson/DevJsonInquiryRepository.cs` | 70 | nameof preserves the original identifier string |
-| `server/src/AhmadMakatreh.Infrastructure/Persistence/DevJson/DevJsonInquiryRepository.cs` | 117 | private/protected nested types cannot be named by a file-level using alias |
-| `server/src/AhmadMakatreh.Infrastructure/Persistence/PostgreSql/PostgreSqlInquiryRepository.cs` | 61 | nameof preserves the original identifier string |
-| `server/tests/AhmadMakatreh.IntegrationTests/AdminInquiryIntegrationTests.cs` | 157 | private/protected nested types cannot be named by a file-level using alias |
-| `server/tests/AhmadMakatreh.IntegrationTests/AdminInquiryIntegrationTests.cs` | 197 | private/protected nested types cannot be named by a file-level using alias |
-| `server/tests/AhmadMakatreh.IntegrationTests/AdminInquiryIntegrationTests.cs` | 230 | private/protected nested types cannot be named by a file-level using alias |
-| `server/tests/AhmadMakatreh.IntegrationTests/AdminInquiryIntegrationTests.cs` | 244 | private/protected nested types cannot be named by a file-level using alias |
-| `server/tests/AhmadMakatreh.IntegrationTests/AdminInquiryIntegrationTests.cs` | 293 | private/protected nested types cannot be named by a file-level using alias |
-| `server/tests/AhmadMakatreh.IntegrationTests/AdminInquiryIntegrationTests.cs` | 341 | private/protected nested types cannot be named by a file-level using alias |
-
-## Verification
-
-The coverage audit resolves named bindings and real references, rather than using text replacement. Independent review found missing conditional/member-factory callables, named service objects, and callable destructuring. The expanded audit detected 158 pending bindings before their fix. A final executor check removed the name-based local-constant filter and covered 78 further static constant/model or database/client service references. Both groups are resolved; the final audit has zero pending aliases. Coverage checks actual call/JSX/tagged/constructor/callback uses, native destructuring, static constant initializers regardless of name, declarations, factories, and service adapters. Per-request computed data and empty accumulator containers remain temporary values rather than named components. The C# semantic audit also has zero eligible pending aliases. JavaScript AST equivalence checks cover all 170 files, normalizing aliases and preserving public property keys; the two embedded-helper source assertions follow the new helper name. The preview-config test reader is a deliberate JSONC adapter, with its unchanged assertions compared separately. Python import-alias equivalence passes. All 42 additional text-format files have exact non-comment-content equivalence to the task snapshot. These checks support behavior preservation; they are not a formal whole-program proof. Current command results and hosted verification limits are in [verification and release](verification-and-release.md).
+Check all affected consumers, preserve Arabic text and RTL behavior, and review the diff for accidental formatting, broken imports, changed property names, and secrets. Use the checks appropriate to the affected package in the [verification guide](verification-and-release.md). Record actual results for the change; old test counts or alias inventories are not evidence for new code.

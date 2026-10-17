@@ -1,17 +1,19 @@
 # ADR-004: Bot Verification Abstraction & Strict Fail-Closed Policy
 
 ## Status
-Accepted
+Retained for the alternative ASP.NET Core backend. The current Worker API implements Turnstile verification separately in `server/cloudflare/src/turnstile.js`.
 
 ## Context
-Form submission endpoints are vulnerable to automated bot spam and abuse. While Cloudflare Turnstile is the current bot detection technology of choice, hardcoding Turnstile into domain services couples business workflows to an external SaaS vendor. Additionally, previous configurations permitted silent bypass of verification in Staging environments.
+The booking application service needs a verification result without owning the external Turnstile HTTP integration. A missing or disabled verification configuration must not silently allow submissions outside local development.
 
 ## Decision
 1. Define the port interface `IBotVerificationService` in `AhmadMakatreh.Application`.
 2. Implement `CloudflareTurnstileVerificationService` as an infrastructure adapter.
 3. Enforce a strict **fail-closed** security policy outside of local `Development`:
-   - In Production/Staging: Turnstile is mandatory. If misconfigured or disabled, inquiries are immediately rejected with an audit error.
-   - In Development: Turnstile may be bypassed ONLY when `IsDevelopment=true` AND `AllowDevelopmentBypass=true`.
+   - Outside Development: a disabled verifier or missing secret causes verification to fail.
+   - In Development: a disabled verifier may be bypassed only when `Turnstile:AllowDevelopmentBypass=true`.
 
 ## Consequences
-- **Positive:** Guarantees zero unauthenticated bypass in publicly accessible staging/production environments, and allows swapping Turnstile for reCAPTCHA, hCaptcha, or custom challenges without altering application use cases.
+- `BookingApplicationService` depends on the application interface; `CloudflareTurnstileVerificationService` owns provider communication and failure handling.
+- Provider failures reject verification rather than returning success. This behavior is an anti-bot check, not user authentication.
+- Replacing the provider would require a new adapter and verification of its contract; no additional provider is currently implemented.

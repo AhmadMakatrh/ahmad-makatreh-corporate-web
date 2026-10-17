@@ -15,7 +15,7 @@ This is the source repository for the public website and its administration inte
 | Edge API | `server/cloudflare/src/` | Booking, published content, administration, authentication, media, and email handlers |
 | D1 schema and tests | `server/cloudflare/migrations/`, `server/cloudflare/tests/` | Durable site documents and inquiries, migration and behavior checks |
 | Alternative API | `server/src/`, `server/tests/` | Preserved ASP.NET Core 10/PostgreSQL implementation; it is not the active Cloudflare request path |
-| Architecture and decisions | `docs/` | [Current runtime map](docs/current-architecture.md), [verification and release guide](docs/verification-and-release.md), and historical design records |
+| Documentation | `docs/` | Architecture, administration, development conventions, SEO, and release procedures |
 
 The public Worker serves `client/dist` and public `/api` paths. The administration Worker serves `client/dist-admin` and protected `/api/admin/*` paths. Both import the Cloudflare API from `server/cloudflare/src/index.js`; the public Worker rejects admin requests. Site content and inquiries use D1, media uses Supabase Storage, owner authentication uses Supabase Auth, booking protection uses Turnstile, and transactional messages use Brevo. See [the current architecture map](docs/current-architecture.md) for ownership and compatibility boundaries.
 
@@ -56,4 +56,12 @@ The current public and admin deployment configurations are `client/wrangler.json
 
 ## Development and releases
 
-Keep changes scoped to the affected components and run the relevant checks above before release. The [architecture map](docs/current-architecture.md) records component ownership and compatibility boundaries; the [verification guide](docs/verification-and-release.md) covers release checks.
+Keep changes scoped to the affected components and follow the [Clean Code System](docs/codeguard-alias-guide.md). Run the relevant checks above before release.
+
+## Documentation
+
+- [Current architecture](docs/current-architecture.md): runtime boundaries, source ownership, and the alternative .NET backend.
+- [Administration guide](docs/admin-dashboard.md): sign-in, inquiries, content publishing, media, and backups.
+- [Verification and releases](docs/verification-and-release.md): local checks, build outputs, and deployment procedure.
+- [SEO and GEO](docs/seo-and-geo.md): localized routes, metadata, and prerendering published content.
+- [Clean Code System](docs/codeguard-alias-guide.md): reuse, imports, aliases, and framework constraints.
