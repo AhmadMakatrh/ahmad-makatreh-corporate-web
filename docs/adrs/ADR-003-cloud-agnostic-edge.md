@@ -8,7 +8,7 @@ The ASP.NET Core API may run behind a reverse proxy. Client address resolution m
 
 ## Decision
 1. Keep the alternative API as an ASP.NET Core HTTP application that can run in its own container.
-2. Resolve client addresses in `server/src/AhmadMakatreh.Api/Security/ClientIpResolver.cs`. `CF-Connecting-IP` is used only when `ReverseProxy:TrustCloudflareProxy=true`; otherwise the resolver uses the connection's remote address.
+2. Resolve client addresses in `backend/aspnet/src/AhmadMakatreh.Api/Security/ClientIpResolver.cs`. `CF-Connecting-IP` is used only when `ReverseProxy:TrustCloudflareProxy=true`; otherwise the resolver uses the connection's remote address.
 3. Configure forwarded headers and known proxies in `Program.cs` for the actual hosting environment.
 
 ## Consequences

@@ -71,13 +71,13 @@ These are common reuse points; consult their current exports rather than maintai
 
 | Responsibility | Source |
 | --- | --- |
-| Localized values and immutable collection reordering | `client/src/admin/contentCollections.js` |
-| Package offer calculation | `client/src/data/serviceCatalog.js` |
-| Admin requests, sessions, CSRF, and response caching | `client/src/admin/adminApi.js` |
-| Project slider and enlarged gallery | `client/src/components/ui/ProjectMedia.jsx`, `client/src/components/ui/ProjectGallery.jsx` |
-| Image selection, directional transitions, and swipes | `client/src/hooks/useImageNavigation.js` |
-| Direction-safe technical text | `client/src/components/CaseStudy/TechnicalText.jsx` |
-| Shared Worker API | `server/cloudflare/src/index.js` |
+| Localized values and immutable collection reordering | `frontend/src/admin/contentCollections.js` |
+| Package offer calculation | `frontend/src/data/serviceCatalog.js` |
+| Admin requests, sessions, CSRF, and response caching | `frontend/src/admin/adminApi.js` |
+| Project slider and enlarged gallery | `frontend/src/components/ui/ProjectMedia.jsx`, `frontend/src/components/ui/ProjectGallery.jsx` |
+| Image selection, directional transitions, and swipes | `frontend/src/hooks/useImageNavigation.js` |
+| Direction-safe technical text | `frontend/src/components/CaseStudy/TechnicalText.jsx` |
+| Shared Worker API | `backend/cloudflare/src/index.js` |
 
 ## Reviewing a change
 

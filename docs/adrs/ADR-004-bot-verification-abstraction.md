@@ -1,7 +1,7 @@
 # ADR-004: Bot Verification Abstraction & Strict Fail-Closed Policy
 
 ## Status
-Retained for the alternative ASP.NET Core backend. The current Worker API implements Turnstile verification separately in `server/cloudflare/src/turnstile.js`.
+Retained for the alternative ASP.NET Core backend. The current Worker API implements Turnstile verification separately in `backend/cloudflare/src/turnstile.js`.
 
 ## Context
 The booking application service needs a verification result without owning the external Turnstile HTTP integration. A missing or disabled verification configuration must not silently allow submissions outside local development.

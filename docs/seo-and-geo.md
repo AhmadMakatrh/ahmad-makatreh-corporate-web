@@ -12,7 +12,7 @@ The public build renders the existing React components into complete static HTML
 
 ## Building published CMS content
 
-From `client/`, `npm run build` without an input snapshot renders the bundled defaults. The number of generated pages depends on the content. To include published CMS changes, added pages/articles, hidden records, pricing and text overrides, provide the **public `/api/site` JSON response** as `SEO_SNAPSHOT_FILE`:
+From `frontend/`, `npm run build` without an input snapshot renders the bundled defaults. The number of generated pages depends on the content. To include published CMS changes, added pages/articles, hidden records, pricing and text overrides, provide the **public `/api/site` JSON response** as `SEO_SNAPSHOT_FILE`:
 
 ```powershell
 $env:SEO_SNAPSHOT_FILE = 'C:\path\published-site.json'
@@ -28,9 +28,9 @@ After deployment, submit `/sitemap.xml` in Google Search Console and Bing Webmas
 
 ## Source ownership and clean code
 
-- `client/src/utils/seo.js`: shared metadata model, localized paths, safe HTML serialization and client head updates.
-- `client/src/entry-seo.jsx`: validated snapshot, public route inventory and rendering from existing React components.
-- `client/scripts/seoPrerender.js`: build integration, emitted asset mapping and generated crawl files.
+- `frontend/src/utils/seo.js`: shared metadata model, localized paths, safe HTML serialization and client head updates.
+- `frontend/src/entry-seo.jsx`: validated snapshot, public route inventory and rendering from existing React components.
+- `frontend/scripts/seoPrerender.js`: build integration, emitted asset mapping and generated crawl files.
 - Providers accept optional render inputs; their existing browser defaults remain intact. Route modules load eagerly only during static rendering and remain split in the browser build.
 - Named imports use native aliases; reusable local helpers use `Ref` aliases. React hooks retain their required canonical names.
 
@@ -42,4 +42,4 @@ After deployment, submit `/sitemap.xml` in Google Search Console and Bing Webmas
 
 ## Verification
 
-The metadata and prerendering regression tests are `client/tests/seo.test.js` and `client/tests/seoPrerender.test.js`. Follow the [verification guide](verification-and-release.md) for test and build commands, then inspect the generated localized HTML and sitemap in `client/dist/`.
+The metadata and prerendering regression tests are `frontend/tests/seo.test.js` and `frontend/tests/seoPrerender.test.js`. Follow the [verification guide](verification-and-release.md) for test and build commands, then inspect the generated localized HTML and sitemap in `frontend/dist/`.

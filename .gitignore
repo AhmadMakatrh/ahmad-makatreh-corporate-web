@@ -34,9 +34,9 @@ dist-admin/
 .env.*.local
 
 # Cloudflare local bindings and secrets
-server/cloudflare/.wrangler/
-server/cloudflare/.dev.vars*
-!server/cloudflare/.dev.vars.example
+deploy/cloudflare/.wrangler/
+deploy/cloudflare/.dev.vars*
+!deploy/cloudflare/.dev.vars.example
 .wrangler/
 .wrangler-*/
 .superpowers/

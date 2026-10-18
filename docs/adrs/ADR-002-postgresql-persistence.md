@@ -8,7 +8,7 @@ The ASP.NET Core implementation needs durable inquiry and content storage across
 
 ## Decision
 1. Use PostgreSQL for non-development deployments of this backend through Entity Framework Core (`Npgsql.EntityFrameworkCore.PostgreSQL`).
-2. Maintain EF Core migrations under `server/src/AhmadMakatreh.Infrastructure/Persistence/PostgreSql/Migrations/`.
+2. Maintain EF Core migrations under `backend/aspnet/src/AhmadMakatreh.Infrastructure/Persistence/PostgreSql/Migrations/`.
 3. Retain an explicit local file-based repository (`DevJsonInquiryRepository`) strictly for local offline `Development` environments via configuration `Persistence:Provider=Json`.
 4. Enforce a fail-closed startup check: If `Persistence:Provider=Json` is detected in any non-Development environment (Staging/Production), the application immediately throws an exception and halts startup.
 

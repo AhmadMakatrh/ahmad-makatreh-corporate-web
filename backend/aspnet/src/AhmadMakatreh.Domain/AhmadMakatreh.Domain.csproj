@@ -1,0 +1,14 @@
+<!-- codeguard:components:start
+Source: backend/aspnet/src/AhmadMakatreh.Domain/AhmadMakatreh.Domain.csproj
+Declarations and references retain their native language names and order.
+codeguard:components:end
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

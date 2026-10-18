@@ -1,0 +1,23 @@
+# codeguard:components:start
+# Source: deploy/cloudflare/.dev.vars.example
+# Declarations and references retain their native language names and order.
+# codeguard:components:end
+# Copy to .dev.vars for local development; never commit actual values.
+BOOKING_HMAC_KEY=""
+TURNSTILE_SECRET_KEY=""
+TURNSTILE_ALLOWED_HOSTNAMES="localhost,127.0.0.1"
+PUBLIC_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
+BREVO_API_KEY=""
+BREVO_SENDER_EMAIL=""
+BREVO_SENDER_NAME="Ahmad Makatreh Site"
+BREVO_RECIPIENT_EMAIL=""
+ADMIN_ORIGIN="https://admin.example.test"
+ADMIN_ALLOWED_SUB=""
+ADMIN_SESSION_KEY=""
+ADMIN_CSRF_KEY=""
+MEDIA_PUBLIC_BASE_URL=""
+MEDIA_PROVIDER="r2"
+SUPABASE_URL=""
+SUPABASE_STORAGE_BUCKET=""
+SUPABASE_SECRET_KEY=""
+SUPABASE_PUBLISHABLE_KEY=""

@@ -1,0 +1,17 @@
+<!-- codeguard:components:start
+Source: backend/aspnet/AhmadMakatrehSite.slnx
+Declarations and references retain their native language names and order.
+codeguard:components:end
+-->
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AhmadMakatreh.Api/AhmadMakatreh.Api.csproj" />
+    <Project Path="src/AhmadMakatreh.Application/AhmadMakatreh.Application.csproj" />
+    <Project Path="src/AhmadMakatreh.Domain/AhmadMakatreh.Domain.csproj" />
+    <Project Path="src/AhmadMakatreh.Infrastructure/AhmadMakatreh.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AhmadMakatreh.IntegrationTests/AhmadMakatreh.IntegrationTests.csproj" />
+    <Project Path="tests/AhmadMakatreh.UnitTests/AhmadMakatreh.UnitTests.csproj" />
+  </Folder>
+</Solution>

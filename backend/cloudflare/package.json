@@ -1,0 +1,26 @@
+{
+  "name": "ahmad-makatreh-cloudflare-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "dev": "wrangler dev --config ../../deploy/cloudflare/wrangler.local.jsonc --local",
+    "build": "wrangler deploy --config ../../deploy/cloudflare/wrangler.local.jsonc --dry-run --outdir ../../backend/cloudflare/dist"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3",
+    "ipaddr.js": "2.5.0",
+    "jose": "6.2.12"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261006.1": true
+  }
+}

@@ -1,0 +1,149 @@
+/* codeguard:components:start
+* Source: frontend/src/styles/logical.css
+* Declarations and references retain their native language names and order.
+* codeguard:components:end
+ */
+/* The file was created by Ahmed Al-Makhatreh. */
+
+/*
+ * CSS Logical Properties for Robust Multi-Directional Layouts (RTL / LTR)
+ * Eliminates fragile left/right overrides and prevents layout collapse on window resize or language switch.
+ */
+
+:root {
+  --font-arabic: 'Cairo', system-ui, -apple-system, sans-serif;
+  --font-english-display: 'Syne', system-ui, sans-serif;
+  --font-english-body: 'Inter', system-ui, sans-serif;
+  
+  --color-dark: #070707;
+  --color-card-gray: #141414;
+  --color-accent: #D4EC31;
+  --color-light: #f4f4f5;
+  --color-border: #222222;
+  --color-muted: #A1A1AA;
+
+  /* Global Fluid Spacing Tokens (Device-Agnostic / Zoom-Safe) */
+  --page-gutter: clamp(1rem, 3.5vw + 0.25rem, 4.5rem);
+
+  --section-space-sm: clamp(2.5rem, 5svh + 1rem, 5rem);
+  --section-space-md: clamp(4rem, 7svh + 1.5rem, 7.5rem);
+  --section-space-lg: clamp(5rem, 9svh + 2rem, 10rem);
+
+  --content-gap-sm: clamp(0.75rem, 1.5vw + 0.25rem, 1.5rem);
+  --content-gap-md: clamp(1.25rem, 2.5vw + 0.5rem, 2.5rem);
+  --content-gap-lg: clamp(1.75rem, 3.5vw + 0.75rem, 4rem);
+
+  --card-pad-sm: clamp(1rem, 2vw + 0.5rem, 1.5rem);
+  --card-pad-md: clamp(1.5rem, 2.5vw + 0.75rem, 2.5rem);
+  --card-pad-lg: clamp(2rem, 3.5vw + 1rem, 3.5rem);
+}
+
+/* Document Direction & Typography Enforcement */
+html[dir='rtl'] {
+  direction: rtl;
+  font-family: var(--font-arabic);
+}
+
+html[dir='ltr'] {
+  direction: ltr;
+  font-family: var(--font-english-body);
+}
+
+html[dir='rtl'] .font-display {
+  font-family: var(--font-arabic) !important;
+}
+
+html[dir='ltr'] .font-display {
+  font-family: var(--font-english-display) !important;
+}
+
+/* Logical alignment utilities */
+.text-start-logical {
+  text-align: start !important;
+}
+
+.text-end-logical {
+  text-align: end !important;
+}
+
+.margin-inline-auto {
+  margin-inline: auto;
+}
+
+/* Direction-aware icon flipping */
+html[dir='rtl'] .flip-on-rtl {
+  transform: scaleX(-1);
+}
+
+html[dir='ltr'] .flip-on-rtl {
+  transform: none;
+}
+
+/* Brutalist Inputs with Logical Properties */
+.brutalist-input-field {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 1.25rem;
+  padding-block: 15px;
+  padding-inline: 0;
+  outline: none;
+  transition: border-color 0.3s ease;
+  text-align: start;
+}
+
+html[dir='rtl'] .brutalist-input-field {
+  font-family: 'Cairo', sans-serif;
+  text-align: right;
+  direction: rtl;
+}
+
+html[dir='ltr'] .brutalist-input-field {
+  font-family: 'Syne', sans-serif;
+  text-align: left;
+  direction: ltr;
+}
+
+.brutalist-input-field:focus {
+  border-color: #D4EC31;
+}
+
+.brutalist-input-field::placeholder {
+  color: #a1a1aa;
+  font-family: var(--font-english-display);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.95rem;
+}
+
+html[dir='rtl'] .brutalist-input-field::placeholder {
+  font-family: var(--font-arabic);
+  letter-spacing: 0;
+}
+
+/* Global Fluid Spacing Utilities */
+.section-space-sm { padding-block: var(--section-space-sm); }
+.section-space-md { padding-block: var(--section-space-md); }
+.section-space-lg { padding-block: var(--section-space-lg); }
+
+.gap-fluid-sm { gap: var(--content-gap-sm); }
+.gap-fluid-md { gap: var(--content-gap-md); }
+.gap-fluid-lg { gap: var(--content-gap-lg); }
+
+.card-pad-sm { padding: var(--card-pad-sm); }
+.card-pad-md { padding: var(--card-pad-md); }
+.card-pad-lg { padding: var(--card-pad-lg); }
+
+.mb-fluid-sm { margin-bottom: var(--content-gap-sm); }
+.mb-fluid-md { margin-bottom: var(--content-gap-md); }
+.mb-fluid-lg { margin-bottom: var(--content-gap-lg); }
+
+.mt-fluid-sm { margin-top: var(--content-gap-sm); }
+.mt-fluid-md { margin-top: var(--content-gap-md); }
+.mt-fluid-lg { margin-top: var(--content-gap-lg); }
+
+.page-gutter {
+  padding-inline: var(--page-gutter);
+}

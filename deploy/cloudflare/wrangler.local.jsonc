@@ -1,0 +1,22 @@
+// codeguard:components:start
+// Source: deploy/cloudflare/wrangler.local.jsonc
+// Declarations and references retain their native language names and order.
+// codeguard:components:end
+{
+  "$schema": "../../backend/cloudflare/node_modules/wrangler/config-schema.json",
+  "name": "ahmad-makatreh-api-local",
+  "main": "../../backend/cloudflare/src/index.js",
+  "compatibility_date": "2026-09-05",
+  "workers_dev": false,
+  "ratelimits": [
+    { "name": "BOOKING_RATE_LIMITER", "namespace_id": "10122026", "simple": { "limit": 9, "period": 60 } },
+    { "name": "ADMIN_RATE_LIMITER", "namespace_id": "10122027", "simple": { "limit": 120, "period": 60 } },
+    { "name": "ADMIN_REPLY_RATE_LIMITER", "namespace_id": "10122028", "simple": { "limit": 6, "period": 60 } },
+    { "name": "ADMIN_UPLOAD_RATE_LIMITER", "namespace_id": "10122029", "simple": { "limit": 6, "period": 60 } }
+  ],
+  "triggers": { "crons": ["0 */6 * * *"] },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "ahmad-makatreh-local", "migrations_dir": "../../backend/cloudflare/migrations" }
+  ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "ahmad-makatreh-media-local" }]
+}

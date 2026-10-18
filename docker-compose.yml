@@ -23,7 +23,7 @@ services:
 
   api:
     build:
-      context: ./server
+      context: ./backend/aspnet
       dockerfile: Dockerfile
     container_name: ahmadmakatreh_api
     restart: unless-stopped

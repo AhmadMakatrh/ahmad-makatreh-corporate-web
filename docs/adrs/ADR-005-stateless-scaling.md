@@ -8,7 +8,7 @@ The containerized API needs durable application data and separate signals for pr
 
 ## Decision
 1. Keep non-development inquiry and content persistence in PostgreSQL.
-2. Keep health checks in `server/src/AhmadMakatreh.Api/Endpoints/HealthEndpoints.cs`.
+2. Keep health checks in `backend/aspnet/src/AhmadMakatreh.Api/Endpoints/HealthEndpoints.cs`.
 3. Expose differentiated health probes:
    - `/health/live`: Fast, non-blocking check confirming the process is alive.
    - `/health/ready`: Calls `Database.CanConnectAsync` when the Postgres provider is selected; returns 503 when the database is unavailable. This is not a schema or end-to-end operation check.

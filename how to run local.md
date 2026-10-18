@@ -7,7 +7,7 @@
 ### الخطوة 1: افتح التيرمينال واكتب الأمرين:
 
 ```bash
-cd client
+cd frontend
 npm run dev
 ```
 

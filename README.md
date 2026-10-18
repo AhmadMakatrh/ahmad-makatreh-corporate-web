@@ -8,51 +8,51 @@ This is the source repository for the public website and its administration inte
 
 | Area | Location | Purpose |
 | --- | --- | --- |
-| Public site | `client/src/`, `client/worker.js` | React 19/Vite interface and public Cloudflare Worker |
-| Administration | `client/src/admin/`, `client/workers/admin-worker.js` | Separate protected interface and Worker |
-| Frontend build and assets | `client/scripts/seoPrerender.js`, `client/public/` | SEO prerendering and static assets, including the canonical `_headers` file |
-| Deployment configuration | `client/wrangler.jsonc`, `client/wrangler.admin.jsonc` | Public and admin Worker bindings and asset directories |
-| Edge API | `server/cloudflare/src/` | Booking, published content, administration, authentication, media, and email handlers |
-| D1 schema and tests | `server/cloudflare/migrations/`, `server/cloudflare/tests/` | Durable site documents and inquiries, migration and behavior checks |
-| Alternative API | `server/src/`, `server/tests/` | Preserved ASP.NET Core 10/PostgreSQL implementation; it is not the active Cloudflare request path |
+| Public site | `frontend/src/`, `deploy/cloudflare/public-worker.js` | React 19/Vite interface and public Cloudflare Worker |
+| Administration | `frontend/src/admin/`, `deploy/cloudflare/admin-worker.js` | Separate protected interface and Worker |
+| Frontend build and assets | `frontend/scripts/seoPrerender.js`, `frontend/public/` | SEO prerendering and static assets, including the canonical `_headers` file |
+| Deployment configuration | `deploy/cloudflare/wrangler.public.jsonc`, `deploy/cloudflare/wrangler.admin.jsonc` | Public and admin Worker bindings and asset directories |
+| Edge API | `backend/cloudflare/src/` | Booking, published content, administration, authentication, media, and email handlers |
+| D1 schema and tests | `backend/cloudflare/migrations/`, `backend/cloudflare/tests/` | Durable site documents and inquiries, migration and behavior checks |
+| Alternative API | `backend/aspnet/src/`, `backend/aspnet/tests/` | Preserved ASP.NET Core 10/PostgreSQL implementation; it is not the active Cloudflare request path |
 | Documentation | `docs/` | Architecture, administration, development conventions, SEO, and release procedures |
 
-The public Worker serves `client/dist` and public `/api` paths. The administration Worker serves `client/dist-admin` and protected `/api/admin/*` paths. Both import the Cloudflare API from `server/cloudflare/src/index.js`; the public Worker rejects admin requests. Site content and inquiries use D1, media uses Supabase Storage, owner authentication uses Supabase Auth, booking protection uses Turnstile, and transactional messages use Brevo. See [the current architecture map](docs/current-architecture.md) for ownership and compatibility boundaries.
+The public Worker serves `frontend/dist` and public `/api` paths. The administration Worker serves `frontend/dist-admin` and protected `/api/admin/*` paths. Both import the Cloudflare API from `backend/cloudflare/src/index.js`; the public Worker rejects admin requests. Site content and inquiries use D1, media uses Supabase Storage, owner authentication uses Supabase Auth, booking protection uses Turnstile, and transactional messages use Brevo. See [the current architecture map](docs/current-architecture.md) for ownership and compatibility boundaries.
 
 ## Local setup and verification
 
 Use Node.js 24.15 or newer on the Node 24 release line, or Node.js 22.22.2 or newer on the Node 22 release line. The mounted React tests use jsdom with these runtime requirements. Install with the committed lockfiles:
 
 ```powershell
-cd client
+cd frontend
 npm ci
 npm run dev
 ```
 
 Vite serves the public site on `http://localhost:5173`; `http://admin.localhost:5173` selects the admin app in development. Its `/api` proxy targets `http://localhost:5000` by default, where the preserved .NET API can run. `VITE_API_BASE_URL` may be set for an explicit local API address. Local admin sign-in and Cloudflare services require their own test configuration.
 
-To run the Cloudflare API in isolation, follow [its local setup](server/cloudflare/README.md). Use `.dev.vars.example` only as a list of secret names; keep real values in untracked local files or Cloudflare Secrets. Apply D1 migrations with `--local` for local tests; production migrations require a separate, authorized deployment.
+To run the Cloudflare API in isolation, follow [its local setup](backend/cloudflare/README.md). Use `.dev.vars.example` only as a list of secret names; keep real values in untracked local files or Cloudflare Secrets. Apply D1 migrations with `--local` for local tests; production migrations require a separate, authorized deployment.
 
 ```powershell
-# From client/
+# From frontend/
 npm run lint
 node --test --test-concurrency=1 tests/*.test.js
 npm run build
 npm run build:admin
 
-# From server/cloudflare/
+# From backend/cloudflare/
 npm test
 npm run build            # Wrangler dry run; no deployment
 
 # From repository root, with .NET 10 installed
-dotnet test server/AhmadMakatrehSite.slnx -c Release
+dotnet test backend/aspnet/AhmadMakatrehSite.slnx -c Release
 ```
 
 The PostgreSQL integration tests require an explicit `AHMAD_TEST_POSTGRES_CONNECTION` pointing to a dedicated loopback test server, with `Database=postgres` and a test role allowed to create databases. The fixture creates, migrates, and drops only its generated `ahmad_makatreh_test_<guid>` database. Without the setting, these tests report a skip; invalid configuration or connection failures fail the tests. Do not point this setting at a production or shared application database.
 
-The alternative API container builds directly from source with `docker build -f server/Dockerfile server`. It no longer requires a host `publish/` directory. `server/.dockerignore` excludes local build output, runtime data, tests, and environment files from the build context.
+The alternative API container builds directly from source with `docker build -f backend/aspnet/Dockerfile backend/aspnet`. It no longer requires a host `publish/` directory. `backend/aspnet/.dockerignore` excludes local build output, runtime data, tests, and environment files from the build context.
 
-The current public and admin deployment configurations are `client/wrangler.jsonc` and `client/wrangler.admin.jsonc`. Their asset directories are generated by the two Vite build commands above. Review the bindings and provide secrets in the target Cloudflare environment before any deployment. The build commands do not deploy Workers or run remote migrations.
+The current public and admin deployment configurations are `deploy/cloudflare/wrangler.public.jsonc` and `deploy/cloudflare/wrangler.admin.jsonc`. Their asset directories are generated by the two Vite build commands above. Review the bindings and provide secrets in the target Cloudflare environment before any deployment. The build commands do not deploy Workers or run remote migrations.
 
 ## Development and releases
 

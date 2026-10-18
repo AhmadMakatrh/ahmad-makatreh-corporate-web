@@ -1,6 +1,6 @@
 # لوحة إدارة الموقع
 
-لوحة الإدارة تعمل على `admin.ahmad-makatreh.vip` من خلال Worker مستقل. الواجهة في `client/src/admin/`، ومدخل Worker في `client/workers/admin-worker.js`، ومعالجات API المشتركة في `server/cloudflare/src/`. تستخدم D1 لحفظ البيانات، وSupabase Auth لدخول المالك، وSupabase Storage للوسائط، وBrevo لإرسال البريد. يوضح [مرجع المعمارية](current-architecture.md) حدود هذه المكونات ومسار .NET البديل.
+لوحة الإدارة تعمل على `admin.ahmad-makatreh.vip` من خلال Worker مستقل. الواجهة في `frontend/src/admin/`، ومدخل Worker في `deploy/cloudflare/admin-worker.js`، ومعالجات API المشتركة في `backend/cloudflare/src/`. تستخدم D1 لحفظ البيانات، وSupabase Auth لدخول المالك، وSupabase Storage للوسائط، وBrevo لإرسال البريد. يوضح [مرجع المعمارية](current-architecture.md) حدود هذه المكونات ومسار .NET البديل.
 
 ## أقسام اللوحة
 
@@ -36,7 +36,7 @@
 
 ## الإعدادات المطلوبة
 
-إعداد النشر هو `client/wrangler.admin.jsonc`. ملف `server/cloudflare/.dev.vars.example` مرجع للأسماء؛ القيم السرية تحفظ خارج Git وفي أسرار Worker المستهدف.
+إعداد النشر هو `deploy/cloudflare/wrangler.admin.jsonc`. ملف `deploy/cloudflare/.dev.vars.example` مرجع للأسماء؛ القيم السرية تحفظ خارج Git وفي أسرار Worker المستهدف.
 
 | الإعداد | الغرض |
 | --- | --- |
@@ -50,7 +50,7 @@
 
 يربط إعداد Worker محددات طلبات منفصلة: 120 طلب إدارة في الدقيقة لكل هوية، وست عمليات رد وست عمليات رفع في الدقيقة لكل هوية، وخمس محاولات دخول في الدقيقة لكل IP. هذه إعدادات حماية وليست قياسًا لسعة النظام.
 
-التشغيل المحلي موضّح في [دليل Cloudflare API](../server/cloudflare/README.md). ظهور واجهة `admin.localhost` في Vite لا يجهز جلسة الإنتاج؛ مسار الجلسة يتطلب أصل HTTPS مطابقًا وإعداد Auth صالحًا.
+التشغيل المحلي موضّح في [دليل Cloudflare API](../backend/cloudflare/README.md). ظهور واجهة `admin.localhost` في Vite لا يجهز جلسة الإنتاج؛ مسار الجلسة يتطلب أصل HTTPS مطابقًا وإعداد Auth صالحًا.
 
 ### تجهيز Supabase Auth لبيئة جديدة
 
@@ -76,6 +76,6 @@
 
 ## النسخ الاحتياطي والتحقق
 
-نسخة المستندات من اللوحة لا تشمل تاريخ D1 الكامل أو ملفات Supabase أو حسابات Auth وأسرارها. النسخة التشغيلية الكاملة تحتاج نسخة D1 ونسخة وسائط متوافقتين، مع اختبار الاستعادة إلى موارد معزولة. يوفر `server/cloudflare/scripts/supabaseMediaTools.js` أدوات فحص ونسخ واستعادة الوسائط؛ راجع [دليل API](../server/cloudflare/README.md) قبل استخدامها.
+نسخة المستندات من اللوحة لا تشمل تاريخ D1 الكامل أو ملفات Supabase أو حسابات Auth وأسرارها. النسخة التشغيلية الكاملة تحتاج نسخة D1 ونسخة وسائط متوافقتين، مع اختبار الاستعادة إلى موارد معزولة. يوفر `backend/cloudflare/scripts/supabaseMediaTools.js` أدوات فحص ونسخ واستعادة الوسائط؛ راجع [دليل API](../backend/cloudflare/README.md) قبل استخدامها.
 
 راجع [دليل التحقق والإصدار](verification-and-release.md) لأوامر الاختبارات والبناء والتمييز بين التشغيل المحلي والمعاينة والإنتاج. بناء الواجهة واختبارات الخدمات المعزولة لا يثبتان صلاحية حسابات Auth أو وصول البريد في البيئة المنشورة.

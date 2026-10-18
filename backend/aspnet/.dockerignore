@@ -1,0 +1,16 @@
+# codeguard:components:start
+# Source: backend/aspnet/.dockerignore
+# Declarations and references retain their native language names and order.
+# codeguard:components:end
+**/bin
+**/obj
+**/App_Data
+**/inquiries.json
+**/.env*
+**/.dev.vars*
+**/appsettings.*.local.json
+**/*.local
+**/*.user
+cloudflare/
+tests/
+publish/
