@@ -62,4 +62,14 @@ export async function handleRequest(request, env, ctx, handler = apiRef, verifie
 }
 // codeguard:components:end
 
-export default { fetch: handleRequestRef };
+export default {
+  async fetch(request, env, ctx) {
+    const response = await handleRequestRef(request, env, ctx);
+    const result = new Response(response.body, response);
+    result.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    if (!result.headers.has('Content-Security-Policy')) {
+      result.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+    }
+    return result;
+  },
+};
