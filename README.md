@@ -56,7 +56,7 @@ The current public and admin deployment configurations are `client/wrangler.json
 
 ## Development and releases
 
-Keep changes scoped to the affected components and follow the [Clean Code System](docs/codeguard-alias-guide.md). Run the relevant checks above before release.
+
 
 ## Documentation
 
