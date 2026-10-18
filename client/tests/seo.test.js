@@ -3,9 +3,45 @@
 // codeguard:defines: SEO metadata tests
 import { test as testRef } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile as readFileRef } from 'node:fs/promises';
+import { Script as ScriptRef } from 'node:vm';
 import { localizedPath as languagePath, pageMetadata as metadataFor, renderSeoHead as renderHead } from '../src/utils/seo.js';
 import { renderSeoDocument as renderDocument } from '../scripts/seoPrerender.js';
 // codeguard:components:end
+
+testRef('external language bootstrap preserves route and saved preferences before application loading', async () => {
+  const template = await readFileRef(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(template, /<script src="\/init-lang\.js"><\/script>/);
+  const source = await readFileRef(new URL('../public/init-lang.js', import.meta.url), 'utf8');
+  for (const [pathname, seoLanguage, saved, expected] of [
+    ['/page/ar/work/tammivo', 'en', 'en', 'ar'],
+    ['/work/tammivo', 'en', 'ar', 'en'],
+    ['/', undefined, 'ar', 'ar'],
+    ['/', undefined, 'invalid', 'en'],
+    ['/page/ar/', undefined, new Error('Storage unavailable'), 'ar'],
+  ]) {
+    const attributes = {};
+    new ScriptRef(source).runInNewContext({
+      location: { pathname },
+      localStorage: { getItem() { if (saved instanceof Error) throw saved; return saved; } },
+      document: { documentElement: { dataset: { seoLanguage }, setAttribute(name, value) { attributes[name] = value; } } },
+    });
+    assert.deepEqual(attributes, { lang: expected, dir: expected === 'ar' ? 'rtl' : 'ltr' });
+  }
+});
+
+testRef('public CSP blocks inline execution, eval, objects and base URL changes', async () => {
+  const template = await readFileRef(new URL('../index.html', import.meta.url), 'utf8');
+  const headers = await readFileRef(new URL('../public/_headers', import.meta.url), 'utf8');
+  for (const source of [template.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1], headers]) {
+    const scripts = source.match(/script-src\s+([^;]+)/)[1];
+    assert.doesNotMatch(scripts, /'unsafe-inline'|'unsafe-eval'/);
+    assert.match(scripts, /https:\/\/static\.cloudflareinsights\.com/);
+    assert.match(source, /object-src 'none'/);
+    assert.match(source, /base-uri 'none'/);
+  }
+  assert.match(headers, /frame-ancestors 'none'/);
+});
 
 testRef('localized canonical paths preserve clean routes and remove tracking fragments', () => {
   assert.equal(languagePath('/work/tammivo/?utm_source=test#gallery', 'ar'), '/page/ar/work/tammivo');

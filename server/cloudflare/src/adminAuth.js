@@ -124,7 +124,9 @@ export function createAdminAuth({ fetcher = fetch, now = Date.now, clientFactory
         } catch { return fail('تعذر الاتصال بخدمة الدخول. حاول مجددًا.', 503); }
       }
       if (request.method !== 'POST') return fail('Method not allowed.', 405);
-      if (request.headers.get('Origin') !== env.ADMIN_ORIGIN) return fail('مصدر الطلب غير مسموح.', 403);
+      const fetchSite = request.headers.get('Sec-Fetch-Site');
+      if (request.headers.get('Origin') !== env.ADMIN_ORIGIN || fetchSite !== null && fetchSite !== 'same-origin')
+        return fail('مصدر الطلب غير مسموح.', 403);
       if (route !== '/auth/logout') {
         const limited = await env.ADMIN_LOGIN_RATE_LIMITER.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' });
         if (limited.success !== true) return respond({ message: 'محاولات كثيرة. انتظر دقيقة ثم أعد المحاولة.' }, 429, { 'Retry-After': '60' });

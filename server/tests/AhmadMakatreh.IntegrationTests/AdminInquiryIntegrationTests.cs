@@ -164,6 +164,13 @@ public class AdminInquiryIntegrationTests
         (await client.PatchAsJsonAsync($"/api/admin/inquiries/{newer.Id}/status", write)).StatusCode.Should().Be(HttpStatusCodeRef.Forbidden);
         client.DefaultRequestHeaders.Remove("Origin");
         client.DefaultRequestHeaders.Add("Origin", "https://admin.ahmad-makatreh.vip");
+        foreach (var site in new[] { "cross-site", "same-site", "none" })
+        {
+            client.DefaultRequestHeaders.Add("Sec-Fetch-Site", site);
+            (await client.PatchAsJsonAsync($"/api/admin/inquiries/{newer.Id}/status", write)).StatusCode.Should().Be(HttpStatusCodeRef.Forbidden);
+            client.DefaultRequestHeaders.Remove("Sec-Fetch-Site");
+        }
+        client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "same-origin");
         (await client.PatchAsJsonAsync($"/api/admin/inquiries/{newer.Id}/status", write)).StatusCode.Should().Be(HttpStatusCodeRef.OK);
         (await client.PatchAsJsonAsync($"/api/admin/inquiries/{newer.Id}/status", write)).StatusCode.Should().Be(HttpStatusCodeRef.Conflict);
         var saved = await repository.GetByReferenceIdAsync(newer.ReferenceId);

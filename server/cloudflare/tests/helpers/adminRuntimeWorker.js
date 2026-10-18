@@ -14,7 +14,7 @@ export default {
       if (String(url) === `${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`) {
         countersRef.jwks++; return Response.json(env.TEST_PUBLIC_JWKS);
       }
-      if (String(url) === 'https://api.brevo.com/v3/smtp/email' && options.method === 'POST' && options.redirect === 'error') {
+      if (String(url) === 'https://api.brevo.com/v3/smtp/email' && options.method === 'POST' && options.redirect === 'manual') {
         countersRef.emails++; return Response.json({ messageId: 'isolated-runtime-acceptance' });
       }
       throw new Error('Unexpected test outbound request.');

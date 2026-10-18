@@ -31,7 +31,8 @@ testRef('compiled workerd verifies Supabase session/CSRF, durable replies, backu
   assert.equal(await env.DB.prepare('SELECT count(*) AS n FROM d1_migrations').first('n'), 4);
   const call = async (path, options) => {
     const request = adminRequestRef(fRef, path, options);
-    return serverRef.fetch(request.url, { method: request.method, headers: Object.fromEntries(request.headers), ...(request.method === 'GET' ? {} : { body: await request.text() }) });
+    // Target this single Worker directly; HTTP asset routing is covered in the asset runtime tests.
+    return worker.fetch(request.url, { method: request.method, headers: Object.fromEntries(request.headers), ...(request.method === 'GET' ? {} : { body: await request.text() }) });
   };
   const callRef = call;
   // Miniflare's actual rate buckets reset at wall-clock minute boundaries. Start the short sequence with a full test window.

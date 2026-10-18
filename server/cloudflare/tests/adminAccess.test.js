@@ -72,7 +72,9 @@ testRef('CSRF cookie is host-only, signed for the user and required on writes', 
     csrf: data.csrfToken, body: {}, ...options });
   const writeRef = write;
   assert.equal(await accessRef4.validateMutation(writeRef(), fRef4.env, identity), null);
-  for (const options of [{ csrf: 'forged' }, { cookie: '' }, { headers: { Origin: 'https://foreign.example' } }])
+  assert.equal(await accessRef4.validateMutation(writeRef({ headers: { 'Sec-Fetch-Site': 'same-origin' } }), fRef4.env, identity), null);
+  for (const options of [{ csrf: 'forged' }, { cookie: '' }, { headers: { Origin: 'https://foreign.example' } },
+    ...['cross-site', 'same-site', 'none'].map(site => ({ headers: { 'Sec-Fetch-Site': site } }))])
     assert.equal((await accessRef4.validateMutation(writeRef(options), fRef4.env, identity)).status, 403);
   assert.equal((await accessRef4.validateMutation(writeRef(), fRef4.env, { ...identity, sub: 'different-user' })).status, 403);
 });

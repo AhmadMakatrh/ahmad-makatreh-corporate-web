@@ -57,3 +57,11 @@ testRef('missing API bindings fail as API responses rather than returning the si
   }), env);
   assert.equal(admin.status, 404);
 });
+
+testRef('HTML without the canonical CSP fails closed before serving a page', async () => {
+  const env = { ASSETS: { fetch: () => new Response('<html>site</html>', { headers: { 'Content-Type': 'text/html' } }) } };
+  const response = await handleRequestRef(new Request(publicHostRef + '/'), env);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.doesNotMatch(await response.text(), /<html>/);
+});

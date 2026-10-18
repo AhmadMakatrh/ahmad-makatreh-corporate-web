@@ -8,6 +8,20 @@ const module = await import('../src/adminAuth.js').catch(() => null);
 const moduleRef = module;
 // codeguard:components:end
 
+testRef('auth mutations reject foreign Fetch Metadata before invoking identity or email services', async () => {
+  let attempts = 0;
+  const env = { ADMIN_ORIGIN: 'https://admin.example.test', SUPABASE_PUBLISHABLE_KEY: 'isolated',
+    ADMIN_LOGIN_RATE_LIMITER: { limit: async () => { attempts++; return { success: true }; } } };
+  const auth = moduleRef.createAdminAuth({ clientFactory() { throw new Error('Unexpected identity request'); } });
+  for (const site of ['cross-site', 'same-site', 'none']) {
+    const response = await auth.handle(new Request(`${env.ADMIN_ORIGIN}/auth/login`, {
+      method: 'POST', headers: { Origin: env.ADMIN_ORIGIN, 'Sec-Fetch-Site': site, 'Content-Type': 'application/json' }, body: '{}',
+    }), env);
+    assert.equal(response.status, 403);
+  }
+  assert.equal(attempts, 0);
+});
+
 testRef('password and email code are both required for an eight-hour admin cookie without D1', async () => {
   assert.ok(moduleRef?.createAdminAuth, 'admin Auth handler must exist');
   const f = await createAdminFixtureRef();

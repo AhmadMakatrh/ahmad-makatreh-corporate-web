@@ -65,7 +65,9 @@ export function createAdminAccess({ fetcher = fetch, now = Date.now } = {}) {
     },
     async validateMutation(request, env, identity) {
       const config = settingsRef(env), token = cookieTokenRef(request);
-      if (!config || request.headers.get('Origin') !== identity.origin) return rejectRef(403, 'Admin origin rejected.');
+      const fetchSite = request.headers.get('Sec-Fetch-Site');
+      if (!config || request.headers.get('Origin') !== identity.origin || fetchSite !== null && fetchSite !== 'same-origin')
+        return rejectRef(403, 'Admin origin rejected.');
       if (!token || request.headers.get('X-Admin-CSRF') !== token || !await validCsrfRef(token, config, identity)) return rejectRef(403, 'Admin verification failed. Reload the dashboard.');
       return null;
     },

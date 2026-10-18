@@ -26,6 +26,14 @@ testRef('public build excludes dashboard code while admin build includes it', ()
   const publicScripts = publicFiles.filter(path => path.endsWith('.js')).map(path => readFileSyncRef(path, 'utf8')).join('\n');
   assert.equal(publicScripts.includes('مكتبة الوسائط'), false);
   assert.equal(publicScripts.includes('AdminAntiforgery'), false);
+  assert.ok(publicFiles.some(path => path.endsWith('init-lang.js')));
+  for (const path of publicFiles.filter(file => file.endsWith('.html'))) {
+    const html = readFileSyncRef(path, 'utf8');
+    assert.match(html, /<script src="\/init-lang\.js"><\/script>/, path);
+    assert.doesNotMatch(html, /'sha256-[^']+'/);
+    for (const [, attributes] of html.matchAll(/<script\b([^>]*)>[\s\S]*?<\/script>/g))
+      assert.ok(/\bsrc=/.test(attributes) || /type="application\/ld\+json"/.test(attributes), `Unexpected inline execution in ${path}`);
+  }
 
   const stale = joinRef(root, 'dist-admin/assets/stale-admin-chunk.js');
   mkdirSyncRef(joinRef(root, 'dist-admin/assets'), { recursive: true });

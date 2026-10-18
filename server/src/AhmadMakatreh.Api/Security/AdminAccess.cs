@@ -117,9 +117,11 @@ public static class AdminAccess
                 if (!HttpMethodsRef.IsGet(http.Request.Method) && !HttpMethodsRef.IsHead(http.Request.Method))
                 {
                     var origin = http.Request.Headers.Origin.ToString();
+                    var fetchSite = http.Request.Headers["Sec-Fetch-Site"].ToString();
                     var allowed = http.RequestServices.GetRequiredService<IConfigurationRef>()["AdminAccess:Origin"]
                         ?? "https://admin.ahmad-makatreh.vip";
-                    if (!string.Equals(origin, allowed, StringComparisonRef.Ordinal))
+                    if (!string.Equals(origin, allowed, StringComparisonRef.Ordinal)
+                        || fetchSite.Length > 0 && !string.Equals(fetchSite, "same-origin", StringComparisonRef.Ordinal))
                         return ResultsRef.Problem(statusCode: 403, title: "Admin origin rejected.");
                     try
                     {
