@@ -1,5 +1,5 @@
 // codeguard:components:start
-// codeguard:defines: inquiryStates, inquiryStatus, inquiryId, listInquiries, getInquiry, updateInquiryStatus, updateInquiryNotes, exportInquiries (and more)
+// codeguard:defines: inquiryStates, inquiryStatus, inquiryId, listInquiries, getInquiry, updateInquiryStatus, updateInquiryNotes, claimNotification, exportInquiries (and more)
 import { cursorFor as cursorForRef, normalizeUtc as utcStamp } from './inquiryTime.js';
 import { validateBooking as checkBooking } from './bookingValidation.js';
 const inquiryIdRef = inquiryId;
@@ -46,6 +46,11 @@ export async function updateInquiryStatus(db, id, status, expected, updated) {
 }
 export async function updateInquiryNotes(db, id, notes, actor, expected, updated) {
   return (await db.prepare('UPDATE inquiries SET admin_notes=?,notes_updated_by=?,updated_at_utc=? WHERE id=? AND updated_at_utc=?').bind(notes, actor, updated, id, expected).run()).meta.changes === 1;
+}
+export async function claimNotification(db, id, expected, attemptedAtUtc) {
+  return (await db.prepare(`UPDATE inquiries SET notification_status='unknown',notification_attempted_at_utc=?
+    WHERE id=? AND notification_status IN ('failed','disabled') AND notification_attempted_at_utc IS ?`)
+    .bind(attemptedAtUtc, id, expected).run()).meta.changes === 1;
 }
 
 export async function exportInquiries(db, ids) {

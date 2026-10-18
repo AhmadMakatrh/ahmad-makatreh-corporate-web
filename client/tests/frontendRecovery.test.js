@@ -12,6 +12,7 @@ let AdminApp;
 let BookingSection;
 let AppProviders;
 let ContentPageView;
+let InquiryInbox;
 const button = (container, text) => [...container.querySelectorAll('button')].find(item => item.textContent.trim() === text);
 const buttonRef = button;
 const response = data => Response.json(data);
@@ -26,8 +27,65 @@ beforeRef(async () => {
   ({ BookingSection } = await environment.load('/src/sections/Booking/BookingSection.jsx'));
   ({ AppProviders } = await environment.load('/src/providers/AppProviders.jsx'));
   ({ ContentPageView } = await environment.load('/src/pages/ContentPage.jsx'));
+  ({ InquiryInbox } = await environment.load('/src/admin/InquiryInbox.jsx'));
 });
 afterRef(async () => { await environment?.close(); });
+
+testRef('notification retry shows a warning, locks duplicate clicks and updates the detail and inbox together', async context => {
+  adminApi.clear();
+  const inquiry = { id: '11111111-1111-4111-8111-111111111111', referenceId: 'TEST-NOTIFICATION', name: 'Test', email: 'visitor@example.test',
+    status: 'New', inquiryCategory: 'other', projectDetails: 'Test details', adminNotes: '', createdAtUtc: '2026-10-12T08:00:00Z',
+    updatedAtUtc: '2026-10-12T08:00:00Z', notificationStatus: 'disabled', notificationAttemptedAtUtc: '2026-10-12T08:00:00Z',
+    notificationEnabled: true, notificationRetryable: true, replyEnabled: false };
+  const writes = []; let complete;
+  globalThis.fetch = async (url, options = {}) => {
+    if (options.method) { writes.push({ url, body: JSON.parse(options.body) }); return new Promise(resolve => { complete = resolve; }); }
+    if (url.endsWith('/session')) return responseRef({ csrfToken: 'test-csrf' });
+    return responseRef(url.includes('?') ? { items: [inquiry], nextCursor: null } : inquiry);
+  };
+  await adminApi.session();
+  const mounted = await environment.mount(element(InquiryInbox, { onPermissionError: () => {}, onDirtyChange: () => {} }));
+  context.after(mounted.unmount);
+  await waitForRef(() => buttonRef(mounted.container, inquiry.referenceId));
+  assert.equal(mounted.container.querySelector('.admin-badge-warning').textContent, 'الإشعار معطل');
+  await actRef(() => buttonRef(mounted.container, inquiry.referenceId).click());
+  await waitForRef(() => buttonRef(mounted.container, 'إعادة إرسال إشعار الطلب'));
+  const retry = buttonRef(mounted.container, 'إعادة إرسال إشعار الطلب');
+  await actRef(() => { retry.click(); retry.click(); });
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0], { url: `/api/admin/inquiries/${inquiry.id}/notification`, body: { expectedNotificationAttemptedAtUtc: inquiry.notificationAttemptedAtUtc } });
+  assert.equal(mounted.container.querySelector('[aria-label="إغلاق التفاصيل"]').disabled, true);
+  await actRef(async () => complete(responseRef({ id: inquiry.id, notificationStatus: 'accepted', notificationAttemptedAtUtc: '2026-10-18T10:00:00Z', notificationRetryable: false })));
+  await waitForRef(() => !buttonRef(mounted.container, 'إعادة إرسال إشعار الطلب'));
+  assert.equal(mounted.container.querySelector('.admin-badge-warning'), null);
+  assert.match(mounted.container.textContent, /قُبل إشعار الطلب من خدمة البريد/);
+  assert.equal(writes.length, 1);
+});
+
+testRef('disabled email configuration and uncertain notification outcomes cannot trigger a resend', async () => {
+  for (const notificationStatus of ['disabled', 'failed', 'unknown', 'timedOut', null]) {
+    adminApi.clear();
+    const inquiry = { id: '11111111-1111-4111-8111-111111111111', referenceId: 'TEST-NOTIFICATION', name: 'Test', email: 'visitor@example.test',
+      status: 'New', projectDetails: 'Test details', createdAtUtc: '2026-10-12T08:00:00Z', updatedAtUtc: '2026-10-12T08:00:00Z',
+      notificationStatus, notificationEnabled: notificationStatus !== 'disabled', notificationRetryable: notificationStatus === 'disabled', replyEnabled: false };
+    let writes = 0;
+    globalThis.fetch = async (url, options = {}) => {
+      if (options.method) { writes++; throw new Error('Unexpected email attempt'); }
+      return responseRef(url.includes('?') ? { items: [inquiry], nextCursor: null } : inquiry);
+    };
+    const mounted = await environment.mount(element(InquiryInbox, { onPermissionError: () => {}, onDirtyChange: () => {} }));
+    try {
+      await waitForRef(() => buttonRef(mounted.container, inquiry.referenceId));
+      await actRef(() => buttonRef(mounted.container, inquiry.referenceId).click());
+      await waitForRef(() => mounted.container.querySelector('.admin-definition'));
+      assert.ok(mounted.container.querySelector('.admin-badge-warning'));
+      const retry = buttonRef(mounted.container, 'إعادة إرسال إشعار الطلب');
+      if (notificationStatus === 'disabled') assert.equal(retry.disabled, true);
+      else assert.equal(retry, undefined);
+      assert.equal(writes, 0);
+    } finally { await mounted.unmount(); }
+  }
+});
 
 testRef('history restore locks all document edits and competing mutations until it settles', async context => {
   adminApi.clear();
@@ -167,6 +225,43 @@ testRef('a rejected history restore retains the draft and releases the document 
   assert.equal(buttonRef(mounted.container, 'نشر').disabled, false);
   assert.equal(buttonRef(mounted.container, 'استعادة إلى المسودة').disabled, false);
   assert.match(mounted.container.querySelector('[role="alert"]').textContent, /تم تعديل البيانات من جلسة أخرى/);
+});
+
+testRef('public inquiry confirmations hide notification details and reference IDs in both languages and inquiry flows', async context => {
+  environment.window.turnstile = { render() { return 'confirmation-widget'; }, remove() {}, reset() {} };
+  context.after(() => { delete environment.window.turnstile; });
+  for (const language of ['ar', 'en']) {
+    for (const isProjectInquiry of [false, true]) {
+      for (const notificationStatus of ['accepted', 'failed', 'disabled', 'timedOut', 'unknown', undefined]) {
+        let submissions = 0;
+        globalThis.fetch = async (url, options = {}) => {
+          if (url.endsWith('/api/site')) return responseRef({});
+          submissions++;
+          assert.equal(options.method, 'POST');
+          return responseRef({ success: true, referenceId: 'TEST-INTERNAL-REFERENCE', notificationStatus });
+        };
+        const mounted = await environment.mount(element(AppProviders, { initialLanguage: language, initialPath: '/booking', initialSnapshot: {} },
+          element(BookingSection, { isProjectInquiry, serviceKey: isProjectInquiry ? 'resume' : null })));
+        try {
+          await changeInputRef(mounted.container.querySelector('#booking-name'), 'Test name');
+          await changeInputRef(mounted.container.querySelector('#booking-email'), 'visitor@example.test');
+          await changeInputRef(mounted.container.querySelector('#booking-details'), 'Confirmation display test');
+          if (!isProjectInquiry) await actRef(() => mounted.container.querySelector('[data-category-option]').click());
+          await actRef(() => mounted.container.querySelector('form').dispatchEvent(new environment.window.Event('submit', { bubbles: true, cancelable: true })));
+          const confirmation = mounted.container.querySelector('h3')?.parentElement;
+          assert.ok(confirmation);
+          assert.equal(confirmation.querySelectorAll('p').length, 1);
+          assert.doesNotMatch(confirmation.textContent, /TEST-INTERNAL-REFERENCE|Ref ID|حالة إشعار البريد|Email notification status/);
+          assert.equal(confirmation.querySelector('[role="status"]').textContent.trim(), language === 'ar'
+            ? 'شكرًا لتواصلك. سنراجع المعلومات التي قدمتها ونتواصل معك في أسرع وقت ممكن.'
+            : 'Thank you for reaching out. We will review the information you provided and contact you as soon as possible.');
+          assert.equal(submissions, 1);
+          await actRef(() => confirmation.querySelector('button').click());
+          assert.ok(mounted.container.querySelector('form'));
+        } finally { await mounted.unmount(); }
+      }
+    }
+  }
 });
 
 testRef('a second inquiry gets a new connected Turnstile widget and fresh token', async context => {

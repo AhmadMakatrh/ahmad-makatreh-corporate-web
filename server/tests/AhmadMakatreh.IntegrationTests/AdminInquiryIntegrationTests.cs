@@ -76,6 +76,9 @@ using FileRef = global::System.IO.File;
 using RSARef = global::System.Security.Cryptography.RSA;
 using DateTimeRef = global::System.DateTime;
 using ArrayRef = global::System.Array;
+using IInquiryNotificationServiceRef = global::AhmadMakatreh.Application.Interfaces.IInquiryNotificationService;
+using NotificationDispatchStatusRef = global::AhmadMakatreh.Application.Models.NotificationDispatchStatus;
+using TaskOfNotificationDispatchStatusRef = global::System.Threading.Tasks.Task<global::AhmadMakatreh.Application.Models.NotificationDispatchStatus>;
 // codeguard:components:end
 
 namespace AhmadMakatreh.IntegrationTests;
@@ -307,6 +310,84 @@ public class AdminInquiryIntegrationTests
             (await client.PostAsync("/api/admin/inquiries/import", oversizedBody)).StatusCode.Should().Be(HttpStatusCodeRef.RequestEntityTooLarge);
         }
         finally { if (DirectoryRef.Exists(folder)) DirectoryRef.Delete(folder, true); }
+    }
+
+    [TheoryAttributeRef]
+    [InlineDataAttributeRef("disabled", true, 200)]
+    [InlineDataAttributeRef("failed", true, 409)]
+    [InlineDataAttributeRef("accepted", true, 409)]
+    [InlineDataAttributeRef("unknown", true, 409)]
+    [InlineDataAttributeRef("timedOut", true, 409)]
+    [InlineDataAttributeRef(null, true, 409)]
+    [InlineDataAttributeRef("disabled", false, 503)]
+    public async TaskRef NotificationRetryClaimsOneVersionAndPreservesUncertainOutcomes(string? state, bool enabled, int expectedStatus)
+    {
+        var folder = PathRef.Combine(PathRef.GetTempPath(), "admin-notification-" + GuidRef.NewGuid());
+        using var rsa = RSARef.Create(2048); var key = new RsaSecurityKeyRef(rsa) { KeyId = "first" };
+        var notifier = new RecordingNotifier();
+        try
+        {
+            var repository = new DevJsonInquiryRepositoryRef(new BookingAbuseHasherRef(RandomNumberGeneratorRef.GetBytes(32)), NullLoggerOfDevJsonInquiryRepositoryRef.Instance, PathRef.Combine(folder, "inquiries.json"));
+            await using var factory = CreateFactory(key).WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("Email:Enabled", enabled.ToString());
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IInquiryRepositoryRef>(); services.AddSingleton<IInquiryRepositoryRef>(repository);
+                    services.RemoveAll<IAdminInquiryRepositoryRef>(); services.AddSingleton<IAdminInquiryRepositoryRef>(repository);
+                    services.RemoveAll<IInquiryNotificationServiceRef>(); services.AddSingleton<IInquiryNotificationServiceRef>(notifier);
+                    services.RemoveAll<IInquiryReplySenderRef>(); services.AddSingleton<IInquiryReplySenderRef>(new RecordingReplySender());
+                });
+            });
+            var inquiry = new InquiryRef(GuidRef.NewGuid(), "TEST-" + GuidRef.NewGuid().ToString("N"), "Owner", "test@example.test", "Details", inquiryCategory: "other");
+            await repository.AddAsync(inquiry);
+            DateTimeRef? attemptedAt = state is null ? null : DateTimeRef.UtcNow.AddDays(-1);
+            if (state is not null) await repository.RecordNotificationAsync(inquiry.Id, state, attemptedAt!.Value);
+            using var client = factory.CreateClient(); client.DefaultRequestHeaders.Add("Cf-Access-Jwt-Assertion", Token(key));
+            var sessionResponse = await client.GetAsync("/api/admin/session"); var session = await sessionResponse.Content.ReadFromJsonAsync<Session>();
+            client.DefaultRequestHeaders.Add("Cookie", sessionResponse.Headers.GetValues("Set-Cookie").Single().Split(';')[0]);
+            client.DefaultRequestHeaders.Add("X-Admin-CSRF", session!.CsrfToken); client.DefaultRequestHeaders.Add("Origin", "https://admin.ahmad-makatreh.vip");
+            var path = $"/api/admin/inquiries/{inquiry.Id}/notification";
+            var initial = await client.GetFromJsonAsync<JsonElementRef>($"/api/admin/inquiries/{inquiry.Id}");
+            initial.GetProperty("notificationRetryable").GetBoolean().Should().Be(state == "disabled");
+            if (state == "disabled" && enabled)
+            {
+                (await client.PostAsJsonAsync(path, new { })).StatusCode.Should().Be(HttpStatusCodeRef.BadRequest);
+                (await client.PostAsJsonAsync(path, new { expectedNotificationAttemptedAtUtc = "2026-10-12T08:00:00" })).StatusCode.Should().Be(HttpStatusCodeRef.BadRequest);
+            }
+            var body = new { expectedNotificationAttemptedAtUtc = attemptedAt };
+            var responses = await TaskRef.WhenAll(EnumerableRef.Range(0, 3).Select(_ => client.PostAsJsonAsync(path, body)));
+            if (expectedStatus == 200)
+            {
+                responses.Count(response => response.StatusCode == HttpStatusCodeRef.OK).Should().Be(1);
+                responses.Count(response => response.StatusCode == HttpStatusCodeRef.Conflict).Should().Be(2);
+                notifier.Calls.Should().Be(1);
+                (await client.PostAsJsonAsync(path, body)).StatusCode.Should().Be(HttpStatusCodeRef.Conflict);
+                var saved = await repository.GetAsync(inquiry.Id, default);
+                saved!.NotificationStatus.Should().Be("accepted"); saved.NotificationAttemptedAtUtc.Should().NotBe(attemptedAt);
+                saved.UpdatedAtUtc.Should().Be(inquiry.UpdatedAtUtc); saved.AdminNotes.Should().BeEmpty();
+            }
+            else
+            {
+                responses.Should().OnlyContain(response => response.StatusCode == (HttpStatusCodeRef)expectedStatus);
+                notifier.Calls.Should().Be(0);
+                var saved = await repository.GetAsync(inquiry.Id, default);
+                saved!.NotificationStatus.Should().Be(state); saved.NotificationAttemptedAtUtc.Should().Be(attemptedAt);
+            }
+            var detail = await client.GetFromJsonAsync<JsonElementRef>($"/api/admin/inquiries/{inquiry.Id}");
+            detail.GetProperty("notificationEnabled").GetBoolean().Should().Be(enabled);
+            detail.GetProperty("notificationRetryable").GetBoolean().Should().Be(state == "disabled" && expectedStatus != 200);
+        }
+        finally { if (DirectoryRef.Exists(folder)) DirectoryRef.Delete(folder, true); }
+    }
+
+    private sealed class RecordingNotifier : IInquiryNotificationServiceRef
+    {
+        public int Calls;
+        public async TaskOfNotificationDispatchStatusRef SendNotificationAsync(InquiryRef inquiry, CancellationTokenRef cancellationToken = default)
+        {
+            InterlockedRef.Increment(ref Calls); await TaskRef.Delay(100, cancellationToken); return NotificationDispatchStatusRef.Accepted;
+        }
     }
 
     private sealed class RecordingReplySender : IInquiryReplySenderRef

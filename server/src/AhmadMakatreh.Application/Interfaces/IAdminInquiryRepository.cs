@@ -24,6 +24,8 @@ public interface IAdminInquiryRepository
     TaskOfInquiryRef GetAsync(GuidRef id, CancellationTokenRef cancellationToken);
     TaskOfBooleanRef UpdateStatusAsync(GuidRef id, InquiryStatusRef status, DateTimeRef expectedUpdatedAt, DateTimeRef updatedAt, CancellationTokenRef cancellationToken);
     TaskOfBooleanRef UpdateNotesAsync(GuidRef id, string notes, string actor, DateTimeRef expectedUpdatedAt, DateTimeRef updatedAt, CancellationTokenRef token);
+    TaskOfBooleanRef ClaimNotificationAsync(GuidRef id, DateTimeRef? expectedAttemptedAt, DateTimeRef attemptedAt, CancellationTokenRef token);
+    TaskOfBooleanRef CompleteNotificationAsync(GuidRef id, DateTimeRef attemptedAt, string status, CancellationTokenRef token);
     TaskOfIReadOnlyListRef ExportAsync(GuidRef[] ids, CancellationTokenRef token);
     TaskOfInt32Ref ImportMissingAsync(InquiryRef[] rows, CancellationTokenRef token);
 }

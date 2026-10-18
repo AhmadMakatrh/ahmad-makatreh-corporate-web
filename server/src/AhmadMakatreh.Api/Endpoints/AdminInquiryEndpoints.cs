@@ -1,5 +1,5 @@
 // codeguard:components:start
-// codeguard:defines: AdminInquiryEndpoints, StatusRequest, NotesRequest, ReplyRequest, ExportRequest, InquiryBackup
+// codeguard:defines: AdminInquiryEndpoints, StatusRequest, NotesRequest, ReplyRequest, NotificationRequest, ExportRequest, InquiryBackup
 using AhmadMakatreh.Api.Security;
 using AhmadMakatreh.Application.Interfaces;
 using AhmadMakatreh.Application.Models;
@@ -38,6 +38,12 @@ using InquiryRef = global::AhmadMakatreh.Domain.Entities.Inquiry;
 using GuidRef = global::System.Guid;
 using DateTimeRef = global::System.DateTime;
 using EnumRef = global::System.Enum;
+using IInquiryNotificationServiceRef = global::AhmadMakatreh.Application.Interfaces.IInquiryNotificationService;
+using NotificationDispatchStatusRef = global::AhmadMakatreh.Application.Models.NotificationDispatchStatus;
+using IOptionsOfEmailOptionsRef = global::Microsoft.Extensions.Options.IOptions<global::AhmadMakatreh.Infrastructure.Options.EmailOptions>;
+using NotificationRequestRef = global::AhmadMakatreh.Api.Endpoints.AdminInquiryEndpoints.NotificationRequest;
+using JsonRequiredAttributeRef = global::System.Text.Json.Serialization.JsonRequiredAttribute;
+using OperationCanceledExceptionRef = global::System.OperationCanceledException;
 // codeguard:components:end
 
 namespace AhmadMakatreh.Api.Endpoints;
@@ -79,7 +85,7 @@ public static class AdminInquiryEndpoints
             return ResultsRef.Ok(await repository.ListAsync(filter, token));
         });
 
-        group.MapGet("/inquiries/{id:guid}", async (GuidRef id, IAdminInquiryRepositoryRef repository, IInquiryReplySenderRef sender, CancellationTokenRef token) =>
+        group.MapGet("/inquiries/{id:guid}", async (GuidRef id, IAdminInquiryRepositoryRef repository, IInquiryReplySenderRef sender, IOptionsOfEmailOptionsRef emailOptions, CancellationTokenRef token) =>
         {
             var inquiry = await repository.GetAsync(id, token);
             return inquiry is null ? ResultsRef.NotFound() : ResultsRef.Ok(new
@@ -87,7 +93,10 @@ public static class AdminInquiryEndpoints
                 inquiry.Id, inquiry.ReferenceId, inquiry.Name, inquiry.Email, inquiry.ProjectDetails,
                 inquiry.InquiryCategory, inquiry.ServiceKey, status = inquiry.Status.ToString(),
                 inquiry.NotificationStatus, inquiry.NotificationAttemptedAtUtc, inquiry.CreatedAtUtc, inquiry.UpdatedAtUtc,
-                inquiry.AdminNotes, inquiry.NotesUpdatedBy, replyEnabled = sender.IsConfigured
+                inquiry.AdminNotes, inquiry.NotesUpdatedBy, replyEnabled = sender.IsConfigured,
+                notificationEnabled = sender.IsConfigured && emailOptions.Value.Enabled && !string.IsNullOrWhiteSpace(emailOptions.Value.RecipientEmail),
+                // Legacy SMTP failures may include a lost acknowledgement after acceptance.
+                notificationRetryable = inquiry.NotificationStatus == "disabled"
             });
         });
 
@@ -141,6 +150,43 @@ public static class AdminInquiryEndpoints
             await replies.CompleteAsync(reply.Id, status, completion.Token);
             reply.Status = status; reply.CompletedAtUtc = Timestamp(); return ResultsRef.Ok(reply);
         }).RequireRateLimiting("AdminReplyPolicy");
+        group.MapPost("/inquiries/{id:guid}/notification", async (GuidRef id, NotificationRequestRef request, IAdminInquiryRepositoryRef repository,
+            IInquiryNotificationServiceRef notifier, IInquiryReplySenderRef sender, IOptionsOfEmailOptionsRef emailOptions, ILoggerFactoryRef logs, CancellationTokenRef token) =>
+        {
+            if (request.ExpectedNotificationAttemptedAtUtc is { Kind: not DateTimeKindRef.Utc })
+                return ResultsRef.BadRequest(new { message = "Invalid notification revision." });
+            var inquiry = await repository.GetAsync(id, token);
+            if (inquiry is null) return ResultsRef.NotFound();
+            if (!sender.IsConfigured || !emailOptions.Value.Enabled || string.IsNullOrWhiteSpace(emailOptions.Value.RecipientEmail))
+                return ResultsRef.Problem(statusCode: 503, title: "Notification email is not configured.");
+            var attemptedAt = Timestamp();
+            if (request.ExpectedNotificationAttemptedAtUtc is { } expected && attemptedAt <= expected)
+            {
+                if (expected.Ticks > DateTimeRef.MaxValue.Ticks - 10) return ResultsRef.BadRequest(new { message = "Invalid notification revision." });
+                attemptedAt = expected.AddTicks(10);
+            }
+            if (!await repository.ClaimNotificationAsync(id, request.ExpectedNotificationAttemptedAtUtc, attemptedAt, token))
+                return ResultsRef.Conflict(new { message = "Notification changed or its result requires review. Reload the inquiry." });
+            string status;
+            // Once claimed, finish independently of the browser; uncertain delivery is never retried automatically.
+            using var dispatch = new CancellationTokenSourceRef(TimeSpanRef.FromSeconds(5));
+            try
+            {
+                var outcome = await notifier.SendNotificationAsync(inquiry, dispatch.Token);
+                status = outcome switch { NotificationDispatchStatusRef.Accepted => "accepted", NotificationDispatchStatusRef.Failed => "failed",
+                    NotificationDispatchStatusRef.Disabled => "disabled", NotificationDispatchStatusRef.TimedOut => "timedOut", _ => "unknown" };
+            }
+            catch (OperationCanceledExceptionRef) { status = "timedOut"; }
+            catch (ExceptionRef exception)
+            {
+                logs.CreateLogger("InquiryNotification").LogError("Notification dispatch outcome is unknown: {ErrorType}.", exception.GetType().Name);
+                status = "unknown";
+            }
+            using var completion = new CancellationTokenSourceRef(TimeSpanRef.FromSeconds(5));
+            if (!await repository.CompleteNotificationAsync(id, attemptedAt, status, completion.Token))
+                return ResultsRef.Problem(statusCode: 500, title: "Notification outcome could not be recorded.");
+            return ResultsRef.Ok(new { id, notificationStatus = status, notificationAttemptedAtUtc = attemptedAt, notificationRetryable = status == "disabled" });
+        }).RequireRateLimiting("AdminReplyPolicy");
         group.MapPost("/inquiries/export", async (ExportRequestRef request, IAdminInquiryRepositoryRef repository, CancellationTokenRef token) =>
         {
             if (request.Ids is null || request.Ids.Length is < 1 or > 100 || request.Ids.Distinct().Count() != request.Ids.Length) return ResultsRef.BadRequest(new { message = "Export 1–100 unique inquiries per file." });
@@ -169,6 +215,7 @@ public static class AdminInquiryEndpoints
     public record StatusRequest(string Status, DateTimeRef ExpectedUpdatedAtUtc);
     public record NotesRequest(string Notes, DateTimeRef ExpectedUpdatedAtUtc);
     public record ReplyRequest(GuidRef OperationId, string Subject, string Body);
+    public record NotificationRequest([property: JsonRequiredAttributeRef] DateTimeRef? ExpectedNotificationAttemptedAtUtc);
     public record ExportRequest(GuidRef[] Ids);
     public record InquiryBackup(string Format, int Version, InquiryRef[] Items);
     private static bool SameReply(InquiryReplyRef reply, GuidRef inquiryId, ReplyRequestRef request) => reply.InquiryId == inquiryId && reply.Subject == request.Subject && reply.Body == request.Body;

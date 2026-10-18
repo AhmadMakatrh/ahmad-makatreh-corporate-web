@@ -35,6 +35,7 @@ export function InquiryInbox({ onPermissionError, onDirtyChange, isActive = true
   const refreshDetailRef = refreshDetail;
   const exportPageRef = exportPage;
   const saveStatusRef = saveStatus;
+  const retryNotificationRef = retryNotification;
 
   const [draft, setDraft] = useState(initialFiltersRef);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -50,6 +51,7 @@ export function InquiryInbox({ onPermissionError, onDirtyChange, isActive = true
   const [detailRefresh, setDetailRefresh] = useState(0);
   const [newStatus, setNewStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [notifying, setNotifying] = useState(false);
   const [notice, setNotice] = useState('');
   const saveLock = useRef(false);
   const actionsDirty = useRef(false);
@@ -132,6 +134,20 @@ export function InquiryInbox({ onPermissionError, onDirtyChange, isActive = true
     } catch (err) { setDetailError(err.message); if ([401, 403].includes(err.status)) onPermissionError(err); }
     finally { saveLock.current = false; setSaving(false); }
   }
+  async function retryNotification() {
+    if (saveLock.current || actionBusy.current || !detail?.notificationEnabled || !detail.notificationRetryable) return;
+    saveLock.current = true; setSaving(true); setNotifying(true); setDetailError(''); setNotice('');
+    try {
+      const saved = await api.write(`/inquiries/${detail.id}/notification`, 'POST', { expectedNotificationAttemptedAtUtc: detail.notificationAttemptedAtUtc ?? null });
+      const updated = { ...detail, ...saved };
+      setDetail(updated); api.remember(`/inquiries/${detail.id}`, updated);
+      setPage(current => ({ ...current, items: current.items.map(item => item.id === detail.id ? { ...item, ...saved } : item)
+        .filter(item => !filters.notificationStatus || item.notificationStatus === filters.notificationStatus) }));
+      if (saved.notificationStatus === 'accepted') setNotice('قُبل إشعار الطلب من خدمة البريد.');
+      else setDetailError(`لم يتأكد إرسال الإشعار: ${notificationsRef[saved.notificationStatus] ?? 'غير معروفة'}.`);
+    } catch (err) { setDetailError(err.message); if ([401, 403].includes(err.status)) onPermissionError(err); }
+    finally { saveLock.current = false; setSaving(false); setNotifying(false); }
+  }
 
   return <section aria-labelledby="inbox-title">
     <div className="admin-page-heading"><div><p className="admin-eyebrow">تواصل الموقع</p><h1 id="inbox-title">إدارة الطلبات</h1><p>راجع الرسائل وتابع حالتها من مكان واحد.</p></div>
@@ -154,7 +170,7 @@ export function InquiryInbox({ onPermissionError, onDirtyChange, isActive = true
         : <div className="admin-table-wrap"><table><thead><tr><th>الطلب</th><th>المرسل</th><th>الفئة</th><th>الحالة</th><th>إشعار البريد</th><th>التاريخ</th></tr></thead><tbody>
           {page.items.map(item => <tr key={item.id}><td data-label="الطلب"><button className="admin-link" onClick={() => openDetailRef(item.id)}>{item.referenceId}</button></td>
             <td data-label="المرسل"><strong>{item.name}</strong><span className="admin-email" dir="ltr">{item.email}</span></td><td data-label="الفئة">{categoriesRef[item.inquiryCategory] ?? 'غير محددة'}</td>
-            <td data-label="الحالة"><span className={`admin-badge admin-badge-${item.status.toLowerCase()}`}>{statusesRef[item.status]}</span></td><td data-label="إشعار البريد">{notificationsRef[item.notificationStatus] ?? 'لم تُسجل'}</td><td data-label="التاريخ">{dateRef(item.createdAtUtc)}</td></tr>)}
+            <td data-label="الحالة"><span className={`admin-badge admin-badge-${item.status.toLowerCase()}`}>{statusesRef[item.status]}</span></td><td data-label="إشعار البريد"><span className={`admin-badge${item.notificationStatus === 'accepted' ? '' : ' admin-badge-warning'}`}>{notificationsRef[item.notificationStatus] ?? 'لم تُسجل'}</span></td><td data-label="التاريخ">{dateRef(item.createdAtUtc)}</td></tr>)}
         </tbody></table></div>}
       <div className="admin-pagination"><button className="admin-button admin-button-outline" disabled={loading || cursors.length === 1} onClick={() => { setLoading(true); setError(''); setCursors(current => current.slice(0, -1)); setRefresh(0); }}><ArrowRightRef size={16} /> السابق</button>
         <span>صفحة {cursors.length} · حتى 25 طلبًا</span><button className="admin-button admin-button-outline" disabled={loading || !page?.nextCursor} onClick={() => { setLoading(true); setError(''); setCursors(current => [...current, page.nextCursor]); setRefresh(0); }}>التالي <ArrowLeftRef size={16} /></button></div>
@@ -166,10 +182,16 @@ export function InquiryInbox({ onPermissionError, onDirtyChange, isActive = true
       {!detail && !detailError ? <p role="status">جارٍ تحميل التفاصيل…</p> : detail && <>
         <dl className="admin-definition"><dt>الرقم المرجعي</dt><dd dir="ltr">{detail.referenceId}</dd><dt>الاسم</dt><dd>{detail.name}</dd><dt>البريد</dt><dd><a href={`mailto:${detail.email}`} dir="ltr">{detail.email}</a></dd>
           <dt>سبب التواصل</dt><dd>{categoriesRef[detail.inquiryCategory] ?? 'غير محدد'}</dd><dt>الباقة</dt><dd>{detail.serviceKey ?? '—'}</dd><dt>التاريخ</dt><dd>{dateRef(detail.createdAtUtc)}</dd>
-          <dt>إشعار البريد</dt><dd>{notificationsRef[detail.notificationStatus] ?? 'لم تُسجل'} · {dateRef(detail.notificationAttemptedAtUtc)}</dd></dl>
+          <dt>إشعار البريد</dt><dd><span className={`admin-badge${detail.notificationStatus === 'accepted' ? '' : ' admin-badge-warning'}`}>{notificationsRef[detail.notificationStatus] ?? 'لم تُسجل'}</span> · {dateRef(detail.notificationAttemptedAtUtc)}</dd></dl>
+        {detail.notificationStatus !== 'accepted' && <div className="admin-error" role="status">
+          <p>{detail.notificationRetryable
+            ? detail.notificationEnabled ? 'يمكنك إعادة إرسال إشعار هذا الطلب إلى بريد الإدارة.' : 'إشعار هذا الطلب لم يُرسل. يلزم تفعيل إعدادات البريد على الخادم أولًا.'
+            : 'نتيجة الإشعار غير مؤكدة أو لم تُسجل. راجع سجل مزود البريد قبل إعادة الإرسال لتجنب وصول رسالتين.'}</p>
+          {detail.notificationRetryable && <button type="button" className="admin-button admin-button-outline" disabled={saving || actionsSaving || !detail.notificationEnabled} onClick={retryNotificationRef}>{notifying ? 'جارٍ إرسال الإشعار…' : 'إعادة إرسال إشعار الطلب'}</button>}
+        </div>}
         <h3>تفاصيل الرسالة</h3><p className="admin-message" dir="auto">{detail.projectDetails}</p>
         <form className="admin-status-form" onSubmit={saveStatusRef}><label>حالة الطلب<select value={newStatus} disabled={saving || actionsSaving} onChange={e => setNewStatus(e.target.value)}>{optionsRef(statusesRef)}</select></label>
-          <button className="admin-button" disabled={saving || actionsSaving || newStatus === detail.status}>{saving ? 'جارٍ الحفظ…' : 'حفظ الحالة'}</button></form>
+          <button className="admin-button" disabled={saving || actionsSaving || newStatus === detail.status}>{saving && !notifying ? 'جارٍ الحفظ…' : 'حفظ الحالة'}</button></form>
         <fieldset className="admin-editor-fields" disabled={saving}><InboxActions key={detail.id} detail={detail} onPermissionError={onPermissionError} onDirtyChange={handleDirtyRef} onBusyChange={handleBusyRef} onUpdate={saved => {
           const updated = { ...detail, ...saved };
            setDetail(updated); api.remember(`/inquiries/${detail.id}`, updated);

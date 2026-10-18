@@ -29,6 +29,14 @@ namespace AhmadMakatreh.Infrastructure.Persistence.PostgreSql;
 
 public partial class PostgreSqlInquiryRepository
 {
+    public async TaskOfBooleanRef ClaimNotificationAsync(GuidRef id, DateTimeRef? expectedAttemptedAt, DateTimeRef attemptedAt, CancellationTokenRef token) =>
+        await _context.Inquiries.Where(row => row.Id == id && row.NotificationAttemptedAtUtc == expectedAttemptedAt
+            && row.NotificationStatus == "disabled")
+            .ExecuteUpdateAsync(set => set.SetProperty(row => row.NotificationStatus, "unknown")
+                .SetProperty(row => row.NotificationAttemptedAtUtc, attemptedAt), token) == 1;
+    public async TaskOfBooleanRef CompleteNotificationAsync(GuidRef id, DateTimeRef attemptedAt, string status, CancellationTokenRef token) =>
+        await _context.Inquiries.Where(row => row.Id == id && row.NotificationAttemptedAtUtc == attemptedAt && row.NotificationStatus == "unknown")
+            .ExecuteUpdateAsync(set => set.SetProperty(row => row.NotificationStatus, status), token) == 1;
     public async TaskOfBooleanRef UpdateNotesAsync(GuidRef id, string notes, string actor, DateTimeRef expectedUpdatedAt, DateTimeRef updatedAt, CancellationTokenRef token) =>
         await _context.Inquiries.Where(row => row.Id == id && row.UpdatedAtUtc == expectedUpdatedAt).ExecuteUpdateAsync(set => set
             .SetProperty(row => row.AdminNotes, notes).SetProperty(row => row.NotesUpdatedBy, actor).SetProperty(row => row.UpdatedAtUtc, updatedAt), token) == 1;

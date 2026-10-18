@@ -13,7 +13,9 @@
     "ADMIN_ORIGIN": "https://admin.ahmad-makatreh.vip",
     "SUPABASE_URL": "https://kghmejpjvbmcivnlnkgf.supabase.co",
     "SUPABASE_STORAGE_BUCKET": "ahmad-makatreh-media",
-    "MEDIA_PROVIDER": "supabase"
+    "MEDIA_PROVIDER": "supabase",
+    "BREVO_SENDER_EMAIL": "info@ahmad-makatreh.vip",
+    "BREVO_RECIPIENT_EMAIL": "info@ahmad-makatreh.vip"
   },
   "d1_databases": [
     {

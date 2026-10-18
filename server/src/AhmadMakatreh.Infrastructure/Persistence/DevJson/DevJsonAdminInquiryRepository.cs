@@ -26,6 +26,33 @@ namespace AhmadMakatreh.Infrastructure.Persistence.DevJson;
 
 public partial class DevJsonInquiryRepository
 {
+    public async TaskOfBooleanRef ClaimNotificationAsync(GuidRef id, DateTimeRef? expectedAttemptedAt, DateTimeRef attemptedAt, CancellationTokenRef token)
+    {
+        await FileLock.WaitAsync(token);
+        try
+        {
+            var rows = await ReadInquiriesLockedAsync(token);
+            var inquiry = rows.FirstOrDefault(row => row.Id == id && row.NotificationAttemptedAtUtc == expectedAttemptedAt
+                && row.NotificationStatus == "disabled");
+            if (inquiry is null) return false;
+            inquiry.NotificationStatus = "unknown"; inquiry.NotificationAttemptedAtUtc = attemptedAt;
+            await WriteInquiriesLockedAsync(rows, token); return true;
+        }
+        finally { FileLock.Release(); }
+    }
+    public async TaskOfBooleanRef CompleteNotificationAsync(GuidRef id, DateTimeRef attemptedAt, string status, CancellationTokenRef token)
+    {
+        await FileLock.WaitAsync(token);
+        try
+        {
+            var rows = await ReadInquiriesLockedAsync(token);
+            var inquiry = rows.FirstOrDefault(row => row.Id == id && row.NotificationAttemptedAtUtc == attemptedAt && row.NotificationStatus == "unknown");
+            if (inquiry is null) return false;
+            inquiry.NotificationStatus = status;
+            await WriteInquiriesLockedAsync(rows, token); return true;
+        }
+        finally { FileLock.Release(); }
+    }
     public async TaskOfBooleanRef UpdateNotesAsync(GuidRef id, string notes, string actor, DateTimeRef expectedUpdatedAt, DateTimeRef updatedAt, CancellationTokenRef token)
     {
         await FileLock.WaitAsync(token);

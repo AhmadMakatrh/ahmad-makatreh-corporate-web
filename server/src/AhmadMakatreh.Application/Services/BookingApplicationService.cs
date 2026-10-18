@@ -223,9 +223,9 @@ public class BookingApplicationService : IBookingApplicationServiceRef
         }
         catch (ExceptionRef ex)
         {
-            // Defensive: Notification failure must NEVER roll back or fail the inquiry
-            _logger.LogError(ex, "Notification dispatch failed for ReferenceId: {RefId}. Inquiry remains safely persisted.", inquiry.ReferenceId);
-            return NotificationDispatchStatusRef.Failed;
+            // An SMTP acknowledgement can be lost after acceptance; an exception cannot prove safe retry.
+            _logger.LogError(ex, "Notification dispatch outcome is unknown for ReferenceId: {RefId}. Inquiry remains safely persisted.", inquiry.ReferenceId);
+            return NotificationDispatchStatusRef.Unknown;
         }
     }
 

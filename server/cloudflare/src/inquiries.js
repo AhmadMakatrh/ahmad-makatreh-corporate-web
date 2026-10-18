@@ -48,13 +48,15 @@ export async function storeInquiry(db, inquiry, ipHash, payloadHash, nowMs) {
     : { disposition: row.disposition };
 }
 
-export async function recordNotification(db, inquiryId, status, attemptedAtUtc, timeoutMs = 3000) {
+export async function recordNotification(db, inquiryId, status, attemptedAtUtc, timeoutMs = 3000, expectedAttemptedAtUtc) {
   if (timeoutMs <= 0) throw new Error('Notification outcome recording budget exhausted.');
   let timer;
   try {
     // D1 cannot cancel an in-flight write; timeout means unknown, never retry it.
+    const scoped = expectedAttemptedAtUtc === undefined ? '' : " AND notification_status='unknown' AND notification_attempted_at_utc=?";
     const update = db.prepare(`UPDATE inquiries SET notification_status=?,notification_attempted_at_utc=?
-      WHERE id=?`).bind(status, utcStamp(attemptedAtUtc), inquiryId).run();
+      WHERE id=?${scoped}`).bind(status, utcStamp(attemptedAtUtc), inquiryId,
+      ...(expectedAttemptedAtUtc === undefined ? [] : [expectedAttemptedAtUtc])).run();
     const result = await Promise.race([update, new Promise((_resolve, reject) => {
       timer = setTimeout(() => reject(new Error('Notification outcome recording timed out.')), Math.min(timeoutMs, 3000));
     })]);

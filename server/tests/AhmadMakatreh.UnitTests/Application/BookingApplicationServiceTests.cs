@@ -286,7 +286,7 @@ public class BookingApplicationServiceTests
     }
 
     [FactAttributeRef]
-    public async TaskRef ProcessBookingAsync_WhenNotificationFails_InquiryStillSucceeds()
+    public async TaskRef ProcessBookingAsync_WhenNotificationAcknowledgementIsLost_InquirySucceedsWithUnknownOutcome()
     {
         // Arrange
         var command = new SubmitBookingCommandRef(
@@ -305,20 +305,21 @@ public class BookingApplicationServiceTests
             .Setup(r => r.AddUnlessDuplicateAsync(ItRef.IsAny<InquiryRef>(), ItRef.IsAny<string>(), ItRef.IsAny<CancellationTokenRef>()))
             .ReturnsAsync(BookingSubmissionOutcomeRef.Stored);
 
-        // Notifier throws an exception
+        // A connection may close after the SMTP provider accepted the message.
         _notifierMock
             .Setup(n => n.SendNotificationAsync(ItRef.IsAny<InquiryRef>(), ItRef.IsAny<CancellationTokenRef>()))
-            .ThrowsAsync(new InvalidOperationExceptionRef("SMTP connection failed"));
+            .ThrowsAsync(new IOExceptionRef("SMTP acknowledgement lost"));
 
         // Act
         var result = await _service.ProcessBookingAsync(command);
 
         // Assert: The inquiry MUST still succeed because persistence succeeded!
         result.Success.Should().BeTrue();
-        result.NotificationStatus.Should().Be(NotificationDispatchStatusRef.Failed);
-        result.Message.Should().NotContain("SMTP connection failed");
+        result.NotificationStatus.Should().Be(NotificationDispatchStatusRef.Unknown);
+        result.Message.Should().NotContain("SMTP acknowledgement lost");
         result.ReferenceId.Should().NotBeNullOrWhiteSpace();
         _repositoryMock.Verify(r => r.AddUnlessDuplicateAsync(ItRef.IsAny<InquiryRef>(), ItRef.IsAny<string>(), ItRef.IsAny<CancellationTokenRef>()), TimesRef.Once);
+        _repositoryMock.Verify(r => r.RecordNotificationAsync(ItRef.IsAny<GuidRef>(), "unknown", ItRef.IsAny<DateTimeRef>(), ItRef.IsAny<CancellationTokenRef>()), TimesRef.Once);
     }
 
     [FactAttributeRef]

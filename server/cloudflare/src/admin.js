@@ -4,9 +4,10 @@ import { createAdminAccess as makeAdminAccess } from './adminAccess.js';
 import { readJson as parseJsonRequest } from './httpJson.js';
 import { normalizeUtc as utcStamp, nextUpdatedAt as nextTimestamp, parseCursor as decodeCursor, utcNow as nowUtc } from './inquiryTime.js';
 import { getCategoryDetails as categoryDetails } from './bookingValidation.js';
-import { listInquiries as listInquiriesRef, getInquiry as readInquiry, updateInquiryStatus as updateInquiryStatusRef, updateInquiryNotes as updateInquiryNotesRef, inquiryStatus as inquiryStatusRef, inquiryId as inquiryIdRef, exportInquiries as exportInquiriesRef, validateInquiryBackup as checkInquiryBackup, importMissingInquiries as importMissingInquiriesRef } from './adminInquiries.js';
+import { listInquiries as listInquiriesRef, getInquiry as readInquiry, updateInquiryStatus as updateInquiryStatusRef, updateInquiryNotes as updateInquiryNotesRef, claimNotification as claimNotificationRef, inquiryStatus as inquiryStatusRef, inquiryId as inquiryIdRef, exportInquiries as exportInquiriesRef, validateInquiryBackup as checkInquiryBackup, importMissingInquiries as importMissingInquiriesRef } from './adminInquiries.js';
 import { getReply as readReply, addReply as addReplyRef, completeReply as completeReplyRef, listReplies as listRepliesRef } from './inquiryReplies.js';
-import { sendInquiryReply as sendInquiryReplyRef } from './email.js';
+import { sendInquiryReply as sendInquiryReplyRef, sendInquiryNotification as sendInquiryNotificationRef } from './email.js';
+import { recordNotification as recordNotificationRef } from './inquiries.js';
 import { createAdminDocumentHandler as makeAdminDocumentHandler } from './adminDocuments.js';
 import { createAdminMediaHandler as makeAdminMediaHandler } from './adminMedia.js';
 
@@ -57,11 +58,11 @@ export function createAdminHandler({ fetcher = fetch, now = Date.now, siteReader
       if (documentResponse) return documentResponse;
       const mediaResponse = await mediaRef(request, env, identity, accessRef, ctx);
       if (mediaResponse) return mediaResponse;
-      const route = /^\/inquiries\/([^/]+)(?:\/(status|notes|replies))?$/.exec(path), id = route ? inquiryIdRef(route[1]) : null;
+      const route = /^\/inquiries\/([^/]+)(?:\/(status|notes|replies|notification))?$/.exec(path), id = route ? inquiryIdRef(route[1]) : null;
       const backupAction = path === '/inquiries/export' ? 'export' : path === '/inquiries/import' ? 'import' : null;
       if (path !== '/inquiries' && !backupAction && (!route || !id)) return fail('Not found.', 404);
-      const mutation = route && route[2], isReply = mutation === 'replies';
-      const methods = isReply ? ['GET', 'POST'] : [backupAction ? 'POST' : mutation ? 'PATCH' : 'GET'];
+      const mutation = route && route[2], isReply = mutation === 'replies', isNotification = mutation === 'notification';
+      const methods = isReply ? ['GET', 'POST'] : [backupAction || isNotification ? 'POST' : mutation ? 'PATCH' : 'GET'];
       if (!methods.includes(request.method)) return fail('Method not allowed.', 405);
       if (request.method === 'GET') {
         if (isReply) {
@@ -74,10 +75,12 @@ export function createAdminHandler({ fetcher = fetch, now = Date.now, siteReader
           return respond(await listInquiriesRef(env.DB, filter));
         }
         const inquiry = await readInquiry(env.DB, id);
-        return inquiry ? respond({ ...inquiry, replyEnabled: Boolean(env.BREVO_API_KEY && env.BREVO_SENDER_EMAIL) }) : fail('Not found.', 404);
+        return inquiry ? respond({ ...inquiry, replyEnabled: Boolean(env.BREVO_API_KEY && env.BREVO_SENDER_EMAIL),
+          notificationEnabled: Boolean(env.BREVO_API_KEY && env.BREVO_SENDER_EMAIL && env.BREVO_RECIPIENT_EMAIL),
+          notificationRetryable: ['failed', 'disabled'].includes(inquiry.notificationStatus) }) : fail('Not found.', 404);
       }
       const denied = await accessRef.validateMutation(request, env, identity); if (denied) return denied;
-      if (isReply && (await env.ADMIN_REPLY_RATE_LIMITER.limit({ key: identity.email.toLowerCase() })).success !== true) return throttled();
+      if ((isReply || isNotification) && (await env.ADMIN_REPLY_RATE_LIMITER.limit({ key: identity.email.toLowerCase() })).success !== true) return throttled();
       const type = (request.headers.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
       if (type !== 'application/json' && !type.endsWith('+json')) return fail('Invalid request data.', 415);
       // Each of 100 records has <15,000 UTF-16 value units; 6-byte escapes plus JSON overhead fit 10 MiB.
@@ -93,6 +96,27 @@ export function createAdminHandler({ fetcher = fetch, now = Date.now, siteReader
       if (backupAction === 'import') {
         const validated = checkInquiryBackup(body); if (!validated.items) return fail(validated.message);
         return respond(await importMissingInquiriesRef(env.DB, validated.items));
+      }
+      if (isNotification) {
+        const expected = body.expectedNotificationAttemptedAtUtc === null ? null : utcStamp(body.expectedNotificationAttemptedAtUtc);
+        if (!Object.hasOwn(body, 'expectedNotificationAttemptedAtUtc') || body.expectedNotificationAttemptedAtUtc !== null && !expected)
+          return fail('Invalid notification revision.');
+        const inquiry = await readInquiry(env.DB, id); if (!inquiry) return fail('Not found.', 404);
+        if (!env.BREVO_API_KEY || !env.BREVO_SENDER_EMAIL || !env.BREVO_RECIPIENT_EMAIL)
+          return fail('Notification email is not configured.', 503);
+        const attemptedAtUtc = expected ? nextTimestamp(expected, now()) : nowUtc(now());
+        if (!attemptedAtUtc || !await claimNotificationRef(env.DB, id, expected, attemptedAtUtc))
+          return fail('Notification changed or its result requires review. Reload the inquiry.', 409);
+        const completion = (async () => {
+          const notificationStatus = await sendInquiryNotificationRef(inquiry, { apiKey: env.BREVO_API_KEY,
+            senderEmail: env.BREVO_SENDER_EMAIL, senderName: env.BREVO_SENDER_NAME, recipientEmail: env.BREVO_RECIPIENT_EMAIL }, fetcher);
+          await recordNotificationRef(env.DB, id, notificationStatus, attemptedAtUtc, 3000, attemptedAtUtc);
+          return { id, notificationStatus, notificationAttemptedAtUtc: attemptedAtUtc,
+            notificationRetryable: ['failed', 'disabled'].includes(notificationStatus) };
+        })();
+        // A durable unknown claim prevents another send if the browser or completion write fails.
+        ctx?.waitUntil(completion.catch(exception => console.error('Notification completion unconfirmed.', exception instanceof Error ? exception.name : 'Error')));
+        return respond(await completion);
       }
       if (isReply) {
         const operationId = inquiryIdRef(body.operationId), nonblank = text => typeof text === 'string' && /[^\p{White_Space}]/u.test(text);

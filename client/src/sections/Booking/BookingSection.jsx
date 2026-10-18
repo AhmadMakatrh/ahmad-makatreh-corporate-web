@@ -11,8 +11,6 @@ import { defaultPricing as defaultPricingRef } from '../../data/serviceCatalog';
 
 const INQUIRY_CATEGORIES = ['software-project', 'employment-opportunity', 'professional-collaboration', 'technical-support', 'general-inquiry', 'other'];
 const INQUIRY_CATEGORIESRef = INQUIRY_CATEGORIES;
-const NOTIFICATION_STATUSES = ['accepted', 'failed', 'disabled', 'timedOut', 'unknown'];
-const NOTIFICATION_STATUSESRef = NOTIFICATION_STATUSES;
 const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 const TURNSTILE_SCRIPT_URLRef = TURNSTILE_SCRIPT_URL;
 
@@ -37,7 +35,7 @@ export function BookingSection({ isProjectInquiry = false, serviceKey = null } =
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState(null); // { success: boolean, message: string, refId?: string }
+  const [submissionStatus, setSubmissionStatus] = useState(null); // { success: boolean, message: string }
   const formVisible = !submissionStatus?.success;
 
   // Load and render Turnstile widget if site key is configured
@@ -180,10 +178,6 @@ export function BookingSection({ isProjectInquiry = false, serviceKey = null } =
         setSubmissionStatus({
           success: true,
           message: tRef('formSuccess'),
-          refId: response.referenceId,
-          notificationStatus: NOTIFICATION_STATUSESRef.includes(response.notificationStatus)
-            ? response.notificationStatus
-            : 'unknown',
         });
         setFormData({ name: '', email: '', inquiryCategory: '', projectDetails: '' });
         setTurnstileToken('');
@@ -262,22 +256,9 @@ export function BookingSection({ isProjectInquiry = false, serviceKey = null } =
             <h3 className="font-display text-2xl sm:text-3xl font-bold mb-3 uppercase">
               {submissionStatus.message}
             </h3>
-            <p className="mx-auto mb-6 max-w-xl text-sm sm:text-base leading-relaxed text-[var(--portfolio-muted)]">
+            <p role="status" aria-live="polite" className="mx-auto mb-6 max-w-xl text-sm sm:text-base leading-relaxed text-[var(--portfolio-muted)]">
               {tRef('formSuccessDetails')}
             </p>
-            <p
-              role="status"
-              aria-live="polite"
-              className={`mx-auto mb-6 max-w-xl rounded-lg border px-4 py-3 text-sm ${submissionStatus.notificationStatus === 'accepted' ? 'border-[var(--portfolio-line)] bg-[var(--portfolio-sage)] text-[var(--portfolio-green)]' : 'border-[#e7c9b9] bg-[#fbf3ee] text-[var(--portfolio-copper)]'}`}
-            >
-              <span className="font-bold">{tRef('notificationStatusLabel')}</span>{' '}
-              {tRef(`notification${submissionStatus.notificationStatus[0].toUpperCase()}${submissionStatus.notificationStatus.slice(1)}`)}
-            </p>
-            {submissionStatus.refId && (
-              <p className="text-[var(--portfolio-muted)] font-mono text-xs sm:text-sm tracking-wider uppercase mb-6">
-                Ref ID: <span className="text-[var(--portfolio-green)]">{submissionStatus.refId}</span>
-              </p>
-            )}
             <button
               onClick={() => setSubmissionStatus(null)}
               className="portfolio-action portfolio-button-outline border border-[var(--portfolio-green)] text-[var(--portfolio-green)] hover:bg-[var(--portfolio-sage)] font-display font-bold text-xs uppercase tracking-widest px-8 py-3 rounded-lg transition-all focus:outline-none"
