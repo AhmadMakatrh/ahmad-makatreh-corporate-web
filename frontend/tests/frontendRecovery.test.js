@@ -31,6 +31,32 @@ beforeRef(async () => {
 });
 afterRef(async () => { await environment?.close(); });
 
+testRef('publishing a saved pricing draft explains automatic updates and sends only one mutation', async context => {
+  adminApi.clear();
+  const { defaultPricing: pricing } = await environment.load('/src/data/serviceCatalog.js');
+  const writes = [];
+  globalThis.fetch = async (url, options = {}) => {
+    if (options.method === 'POST') {
+      writes.push({ url, body: JSON.parse(options.body) });
+      return responseRef({ revision: 2, publishedAtUtc: '2026-10-19T10:00:00Z' });
+    }
+    if (url.endsWith('/session')) return responseRef({ csrfToken: 'test-csrf' });
+    return responseRef({ revision: 1, draft: pricing, isPublished: false, hasPrevious: false });
+  };
+  await adminApi.session();
+  const mounted = await environment.mount(element(DocumentEditor, {
+    documentKey: 'pricing', title: 'الأسعار والعروض', initialValue: pricing,
+    onPermissionError: () => {}, onDirtyChange: () => {},
+  }, () => element('p', null, 'Saved pricing draft')));
+  context.after(mounted.unmount);
+  await waitForRef(() => buttonRef(mounted.container, 'نشر'));
+  await actRef(() => buttonRef(mounted.container, 'نشر').click());
+  await waitForRef(() => mounted.container.querySelector('.admin-success'));
+  assert.match(mounted.container.querySelector('.admin-success').textContent, /ستظهر تلقائيًا في الصفحات المفتوحة/);
+  assert.equal(buttonRef(mounted.container, 'نشر').disabled, true);
+  assert.deepEqual(writes, [{ url: '/api/admin/documents/pricing/publish', body: { expectedRevision: 1, restorePrevious: false } }]);
+});
+
 testRef('notification retry shows a warning, locks duplicate clicks and updates the detail and inbox together', async context => {
   adminApi.clear();
   const inquiry = { id: '11111111-1111-4111-8111-111111111111', referenceId: 'TEST-NOTIFICATION', name: 'Test', email: 'visitor@example.test',

@@ -49,7 +49,7 @@ export function ContentPage({ slug }) {
     else if (loaded && !error) setPageMeta({ title: language === 'ar' ? 'الصفحة غير موجودة' : 'Page not found', description: '', path: `/${slug}`, language, noindex: true });
   }, [page, language, loaded, error, slug]);
   if (!loaded) return <p className="portfolio-cms-empty" role="status">{language === 'ar' ? 'جارٍ تحميل الصفحة…' : 'Loading page…'}</p>;
-  if (error) return <div className="portfolio-cms-empty" role="alert"><h1>{language === 'ar' ? 'تعذر تحميل الصفحة' : 'Unable to load this page'}</h1><p>{language === 'ar' ? 'تحقق من الاتصال وأعد المحاولة.' : 'Check your connection and try again.'}</p><button className="portfolio-button portfolio-button-primary" onClick={refresh}>{language === 'ar' ? 'إعادة المحاولة' : 'Try again'}</button></div>;
+  if (error && !page) return <div className="portfolio-cms-empty" role="alert"><h1>{language === 'ar' ? 'تعذر تحميل الصفحة' : 'Unable to load this page'}</h1><p>{language === 'ar' ? 'تحقق من الاتصال وأعد المحاولة.' : 'Check your connection and try again.'}</p><button className="portfolio-button portfolio-button-primary" onClick={refresh}>{language === 'ar' ? 'إعادة المحاولة' : 'Try again'}</button></div>;
   if (!page) return <div className="portfolio-cms-empty"><h1>{language === 'ar' ? 'الصفحة غير موجودة' : 'Page not found'}</h1><SiteLink className="portfolio-button portfolio-button-primary">{language === 'ar' ? 'الرئيسية' : 'Home'}</SiteLink></div>;
   return <ContentPageViewRef page={page} language={language} />;
 }

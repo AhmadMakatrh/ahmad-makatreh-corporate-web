@@ -65,7 +65,7 @@ export function DocumentEditor({ documentKey, title, description, initialValue, 
       const updated = { ...document, ...result, draft, isPublished: action === 'publish', hasPrevious: action === 'save' ? document.hasPrevious : Boolean(document.publishedAtUtc) };
       setDocument(updated); api.remember(path, updated);
       if (action === 'save') setSavedJson(JSON.stringify(draft));
-      setNotice(action === 'save' ? 'تم حفظ المسودة. لم يتغير الموقع المنشور.' : action === 'restore' ? 'تم نشر النسخة السابقة. المسودة الحالية محفوظة.' : 'تم نشر التعديلات. قد تحتاج النسخ المفتوحة من الموقع إلى إعادة تحميل.');
+      setNotice(action === 'save' ? 'تم حفظ المسودة. لم يتغير الموقع المنشور.' : action === 'restore' ? 'تم نشر النسخة السابقة. المسودة الحالية محفوظة.' : 'تم نشر التعديلات. ستظهر تلقائيًا في الصفحات المفتوحة بعد تجدد البيانات.');
     } catch (err) { setError(err.message); if ([401, 403].includes(err.status)) onPermissionError(err); }
     finally { lock.current = false; setBusy(false); }
   }

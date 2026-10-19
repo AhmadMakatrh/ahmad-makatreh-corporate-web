@@ -19,15 +19,28 @@ export function LaunchOffer({ ready }) {
   const { navigateTo: navigateToRef, currentTab } = useNav();
   const { snapshot, loaded, clock } = useSite();
   const offer = useMemo(() => launchPromotionRef(snapshot.pricing ?? defaultPricingRef, clock), [snapshot.pricing, clock]);
+  const offerId = offer?.id;
+  const offerRef = useRef(offer);
   const reducedMotion = useMotionPref();
   const dialogRef = useRef(null);
   const discountRef = useRef(null);
+  const discountCounterRef = useRef(null);
   const animationRef = useRef(null);
   const closingRef = useRef(false);
+  const pendingCloseRef = useRef(null);
   const reducedMotionRef = useRef(reducedMotion);
   const [offerSeen, setOfferSeen] = useState(hasSeenOffer);
   const [dismissedOfferId, setDismissedOfferId] = useState(null);
   const sideDismissed = dismissedOfferId === offer?.id || (offer && wasOfferDismissed(offer.id));
+
+  useLayoutEffect(() => {
+    const previous = offerRef.current;
+    offerRef.current = offer;
+    if (previous?.id !== offer?.id && closingRef.current && currentTab === 'home') pendingCloseRef.current?.();
+    if (!offer || previous?.id !== offer.id || previous.discount === offer.discount || !dialogRef.current?.open || closingRef.current) return;
+    if (discountCounterRef.current) gsapRef.killTweensOf(discountCounterRef.current);
+    discountRef.current.textContent = `${offer.discount}%`;
+  }, [offer, currentTab]);
 
   useLayoutEffect(() => {
     reducedMotionRef.current = reducedMotion;
@@ -35,12 +48,14 @@ export function LaunchOffer({ ready }) {
   }, [reducedMotion]);
 
   useLayoutEffect(() => {
-    if (currentTab !== 'home' || !ready || !loaded || !offer || hasSeenOffer()) return;
+    const currentOffer = offerRef.current;
+    if (currentTab !== 'home') { pendingCloseRef.current = null; closingRef.current = false; return; }
+    if (!ready || !loaded || !currentOffer || hasSeenOffer()) return;
     const dialog = dialogRef.current;
     const discount = discountRef.current;
     const closeButton = dialog.querySelector('.portfolio-launch-offer-close');
     closingRef.current = false;
-    discount.textContent = reducedMotionRef.current ? `${offer.discount}%` : `${Math.min(5, offer.discount)}%`;
+    discount.textContent = reducedMotionRef.current ? `${currentOffer.discount}%` : `${Math.min(5, currentOffer.discount)}%`;
     dialog.showModal();
     queueMicrotask(() => { if (dialog.open) markOfferSeen(); });
     const closeButtonRadius = closeButton.offsetWidth / 2;
@@ -51,20 +66,22 @@ export function LaunchOffer({ ready }) {
         gsapRef.set(closeButton, { x: 0, y: 0 });
         return;
       }
-      const counter = { value: Math.min(5, offer.discount) };
+      const counter = { value: Math.min(5, currentOffer.discount) };
+      discountCounterRef.current = counter;
       animationRef.current = gsapRef.timeline()
         .fromTo('.portfolio-launch-offer-backdrop', { opacity: 0 }, { opacity: 1, duration: .55, ease: 'power2.out' }, 0)
         .fromTo('.portfolio-launch-offer-panel', { opacity: 0, y: 28, scale: .96 }, { opacity: 1, y: 0, scale: 1, duration: .75, ease: 'power3.out', clearProps: 'transform' }, 0)
         .fromTo(closeButton, { x: startOffset, y: startOffset }, { x: 0, y: 0, duration: .75, ease: 'power3.out' }, 0)
         .fromTo('[data-offer-reveal]', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .45, stagger: .075, ease: 'power2.out', clearProps: 'transform,opacity' }, .16)
-        .to(counter, { value: offer.discount, duration: 1.65, ease: 'power2.out', onUpdate: () => { discount.textContent = `${Math.round(counter.value)}%`; }, onComplete: () => { discount.textContent = `${offer.discount}%`; } }, .32);
+        .to(counter, { value: currentOffer.discount, duration: 1.65, ease: 'power2.out', onUpdate: () => { discount.textContent = `${Math.round(counter.value)}%`; }, onComplete: () => { discount.textContent = `${currentOffer.discount}%`; } }, .32);
     }, dialog);
     return () => {
       animationRef.current?.kill();
+      discountCounterRef.current = null;
       context.revert();
       dialog.close();
     };
-  }, [currentTab, ready, loaded, offer]);
+  }, [currentTab, ready, loaded, offerId]);
 
   const close = (afterClose) => {
     const dialog = dialogRef.current;
@@ -74,11 +91,13 @@ export function LaunchOffer({ ready }) {
     const finish = () => {
       dialog.close();
       closingRef.current = false;
+      pendingCloseRef.current = null;
       markOfferSeen();
       setOfferSeen(true);
       afterClose?.();
     };
     const finishRef = finish;
+    pendingCloseRef.current = finishRef;
     if (reducedMotionRef.current) {
       finishRef();
       return;

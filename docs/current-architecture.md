@@ -36,7 +36,7 @@ Worker entry points, assets and resource bindings are configured in `deploy/clou
 
 ## Feature ownership and public contracts
 
-- `frontend/src/data/serviceCatalog.js` owns bundled service and offer defaults. `frontend/src/providers/PublishedSiteProvider.jsx` loads the published `/api/site` snapshot; pricing and content consumers use that snapshot or defaults.
+- `frontend/src/data/serviceCatalog.js` owns bundled service and offer defaults. `frontend/src/providers/PublishedSiteProvider.jsx` loads the published `/api/site` snapshot and revalidates it every 30 seconds after each request while the tab is visible and online, as well as on focus or reconnection. Pricing and content consumers share that snapshot; background reads preserve existing data and loading state, and unchanged responses retain their references.
 - `frontend/src/admin/` owns the inquiries, pricing/offers, content, pages, media, backup and history interfaces. `adminApi.js` owns the protected client transport and cache. Saving a draft and publishing it remain distinct actions.
 - `frontend/src/admin/AdminApp.jsx` keeps each section's key, label, icon, and editor together, so the navigation and rendered editor use the same definition.
 - `backend/cloudflare/src/admin*.js` owns protected administration routes; `booking*.js` owns inquiry validation and submission; `siteDocument*.js` owns published and draft document contracts.
