@@ -193,6 +193,7 @@ export const en = {
   launchOfferTitle: 'Get a discount of up to ',
   launchOfferDescription: 'Limited-time offers',
   launchOfferAction: 'View pricing & offers',
+  launchOfferBadgeAction: 'Offers',
   cookieNoticeTitle: 'Cookies',
   cookieNoticeDescription: 'We use an essential cookie to remember your choice here. With your permission, a preference cookie saves your language and motion setting on this device.',
   cookieNoticeDetailsLabel: 'Cookie policy details',

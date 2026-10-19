@@ -194,6 +194,7 @@ export const ar = {
   launchOfferTitle: 'احصل على خصم حتى ',
   launchOfferDescription: 'عروض لفترة محدودة',
   launchOfferAction: 'شاهد الأسعار والعروض',
+  launchOfferBadgeAction: 'العروض',
   cookieNoticeTitle: 'ملفات تعريف الارتباط',
   cookieNoticeDescription: 'نستخدم ملفًا ضروريًا لحفظ اختيارك هنا. وبموافقتك، نحفظ اللغة وتفضيل الحركة في ملف تخصيص على هذا الجهاز.',
   cookieNoticeDetailsLabel: 'تفاصيل سياسة ملفات الارتباط',

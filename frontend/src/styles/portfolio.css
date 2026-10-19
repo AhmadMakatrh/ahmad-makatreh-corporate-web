@@ -86,12 +86,17 @@ html:has(.portfolio-launch-offer[open]) { overflow: hidden; scrollbar-gutter: st
 .portfolio-launch-offer #launch-offer-description { max-width: 35ch; margin: 18px auto 26px; font-size: 15px; line-height: 1.9; color: var(--portfolio-muted); }
 .portfolio-launch-offer .portfolio-button { width: 100%; border-radius: 0; clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
 .portfolio-launch-offer .portfolio-button:focus-visible { outline-color: var(--portfolio-paper); outline-offset: -4px; }
-.portfolio-offer-teaser { position: fixed; z-index: 120; right: 20px; bottom: 20px; width: min(220px, calc(100vw - 40px)); padding: 20px 18px 17px; border: 1px solid #c8966e; border-radius: 16px; background: radial-gradient(circle at 100% 0, #edcc9870, transparent 55%), var(--portfolio-paper); box-shadow: 0 18px 36px #04171340; text-align: center; color: var(--portfolio-ink); }
-.portfolio-offer-teaser-close { position: absolute; top: -12px; right: -12px; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--portfolio-line); border-radius: 50%; background: var(--portfolio-green); color: var(--portfolio-paper); cursor: pointer; }
-.portfolio-offer-teaser-tag { margin-bottom: 8px; color: #8c4626; font-size: 12px; font-weight: 800; }
-.portfolio-offer-teaser-discount { display: grid; justify-items: center; gap: 2px; font-size: 14px; font-weight: 700; }
-.portfolio-offer-teaser-discount strong { color: var(--portfolio-green); font: 800 40px/1.1 Arial, sans-serif; }
-.portfolio-offer-teaser-link { display: block; margin-top: 12px; padding: 9px; border-radius: 7px; background: var(--portfolio-green); color: var(--portfolio-paper); font-size: 12px; font-weight: 700; text-decoration: none; }
+.portfolio-offer-teaser { position: fixed; z-index: 120; right: 14px; bottom: 14px; display: grid; place-items: center; width: 100px; height: 100px; pointer-events: none; }
+.portfolio-offer-teaser-close { position: absolute; top: 0; right: 0; z-index: 1; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--portfolio-green); cursor: pointer; pointer-events: auto; }
+.portfolio-offer-teaser-close svg { box-sizing: content-box; width: 12px; height: 12px; padding: 4px; border: 1px solid #bd785247; border-radius: 50%; background: var(--portfolio-paper); box-shadow: 0 2px 8px #04171314; }
+.portfolio-offer-teaser-link { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 76px; height: 76px; padding: 6px; border: 1px solid var(--portfolio-copper); border-radius: 50%; background: radial-gradient(circle at 30% 0, #3d795b80, transparent 65%), linear-gradient(145deg, var(--portfolio-green), var(--portfolio-ink)); color: var(--portfolio-paper); box-shadow: 0 0 0 5px var(--portfolio-paper), 0 0 0 6px #bd785247, 0 10px 26px #04171333; text-align: center; text-decoration: none; pointer-events: auto; }
+.portfolio-offer-teaser-link::before { content: ''; position: absolute; inset: 5px; border: 1px solid #edcc9852; border-radius: 50%; pointer-events: none; }
+.portfolio-offer-teaser-value { display: flex; flex-direction: column; align-items: center; justify-content: center; font: 800 28px/1 Arial, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.portfolio-offer-teaser-value > span { color: #edcc98; font-size: .55em; }
+.portfolio-offer-teaser-value strong { font: inherit; }
+.portfolio-offer-teaser-action { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 15px; padding: 1px 5px; border-radius: 8px; background: linear-gradient(120deg, #efdab8, #d59d70 58%, #e8c798); color: var(--portfolio-ink); font-size: 9px; font-weight: 800; line-height: 1.2; text-transform: uppercase; white-space: nowrap; }
+.portfolio-offer-teaser-action span { font: 700 11px/1 Arial, sans-serif; }
+.portfolio-offer-teaser-link:hover { background: linear-gradient(145deg, #21634f, var(--portfolio-ink)); }
 .portfolio-offer-teaser :is(button, a):focus-visible { outline: 2px solid var(--portfolio-copper); outline-offset: 3px; }
 .portfolio-cookie-notice { position: fixed; z-index: 150; inset-inline-start: 18px; bottom: 18px; width: min(430px, calc(100vw - 36px)); padding: 20px; border: 1px solid var(--portfolio-line); border-radius: 16px; background: #fffefa; box-shadow: 0 18px 46px #0417134d; color: var(--portfolio-ink); }
 .portfolio-cookie-notice h2 { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
@@ -107,8 +112,10 @@ html:has(.portfolio-launch-offer[open]) { overflow: hidden; scrollbar-gutter: st
 html:has(.portfolio-cookie-notice) .portfolio-offer-teaser, html:has(.portfolio-launch-offer[open]) .portfolio-offer-teaser { display: none; }
 html[lang=ar] :is(.portfolio-home, .portfolio-header, .portfolio-footer, .portfolio-contribution, .portfolio-work-page, .portfolio-mobile-menu, .portfolio-launch-offer, .portfolio-offer-teaser, .portfolio-cookie-notice, .portfolio-about, .portfolio-services-page, .portfolio-case-study, .portfolio-booking, .portfolio-journal, .portfolio-article) { font-family: 'Noto Sans Arabic', sans-serif; }
 @media (max-width: 560px) {
-  .portfolio-offer-teaser { right: 12px; bottom: 12px; width: 170px; padding: 16px 12px 12px; }
-  .portfolio-offer-teaser-discount strong { font-size: 34px; }
+  .portfolio-offer-teaser { right: 10px; bottom: 10px; width: 92px; height: 92px; }
+  .portfolio-offer-teaser-link { gap: 1px; width: 68px; height: 68px; padding: 5px; }
+  .portfolio-offer-teaser-action { min-height: 14px; }
+  .portfolio-offer-teaser-value { font-size: 25px; }
   .portfolio-cookie-notice { inset-inline-start: 12px; bottom: 12px; width: calc(100vw - 24px); padding: 16px; }
 }
 html[lang=ar] :is(.portfolio-about, .portfolio-services-page, .portfolio-case-study, .portfolio-booking, .portfolio-journal, .portfolio-article) .font-display { font-family: 'Noto Sans Arabic', sans-serif !important; }

@@ -129,12 +129,13 @@ export function LaunchOffer({ ready }) {
       </div>
     </dialog>
     {ready && loaded && !sideDismissed && (offerSeen || hasSeenOffer() || currentTab !== 'home') && (
-      <aside className="portfolio-offer-teaser" dir={language === 'ar' ? 'rtl' : 'ltr'} aria-label={offer.title[language]}>
+      <div className="portfolio-offer-teaser" role="complementary" dir={language === 'ar' ? 'rtl' : 'ltr'} aria-label={offer.title[language]}>
         <button type="button" className="portfolio-offer-teaser-close" onClick={dismissSideRef} aria-label={tRef('close')}><XRef size={16} aria-hidden="true" /></button>
-        <p className="portfolio-offer-teaser-tag">{offer.title[language]}</p>
-        <p className="portfolio-offer-teaser-discount">{tRef('launchOfferTitle')}<strong dir="ltr">{offer.discount}%</strong></p>
-        <SiteLink tab="services" className="portfolio-offer-teaser-link">{tRef('launchOfferAction')}</SiteLink>
-      </aside>
+        <SiteLink tab="services" className="portfolio-offer-teaser-link" aria-label={`${tRef('launchOfferAction')} — ${offer.discount}%`} title={`${offer.title[language]} — ${tRef('launchOfferTitle')} ${offer.discount}%`}>
+          <span className="portfolio-offer-teaser-value" dir="ltr" aria-hidden="true"><span>%</span><strong>{offer.discount}</strong></span>
+          <span className="portfolio-offer-teaser-action" aria-hidden="true">{tRef('launchOfferBadgeAction')}<span>↗</span></span>
+        </SiteLink>
+      </div>
     )}
     </>
   );
