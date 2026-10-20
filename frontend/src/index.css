@@ -37,6 +37,13 @@ html[lang='en'] .font-display {
   font-family: 'Syne', sans-serif !important;
 }
 
+html[lang='en'] :is(h1, h2, h3, h4, h5, h6),
+html[lang='en'] .font-display:is(h1, h2, h3, h4, h5, h6),
+html[lang='en'] .font-syne:is(h1, h2, h3, h4, h5, h6) {
+  font-family: 'Cairo', sans-serif !important;
+  font-weight: 800;
+}
+
 /* Prevent cursive Arabic disconnection */
 html[lang='ar'] .tracking-widest {
   letter-spacing: 0 !important;

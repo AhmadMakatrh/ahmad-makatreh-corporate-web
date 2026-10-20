@@ -120,7 +120,7 @@ html[lang=ar] :is(.portfolio-home, .portfolio-header, .portfolio-footer, .portfo
 }
 html[lang=ar] :is(.portfolio-about, .portfolio-services-page, .portfolio-case-study, .portfolio-booking, .portfolio-journal, .portfolio-article) .font-display { font-family: 'Noto Sans Arabic', sans-serif !important; }
 .portfolio-home { background: var(--portfolio-paper); color: var(--portfolio-ink); padding-top: 86px; }
-html[lang=en] .portfolio-home :is(h1, h2, h3, h4) { font-family: 'Syne', sans-serif; }
+html[lang=en] .portfolio-home :is(h1, h2, h3, h4) { font-family: 'Cairo', sans-serif; font-weight: 800; }
 .portfolio-scroll-progress { position: fixed; inset: 0 0 auto; height: 2px; background: var(--portfolio-green); transform: scaleX(0); transform-origin: right; z-index: 110; pointer-events: none; }
 html[dir=ltr] .portfolio-scroll-progress { transform-origin: left; }
 .portfolio-container { width: min(1120px, calc(100% - 84px)); margin-inline: auto; }
@@ -726,8 +726,8 @@ html[dir='rtl'] .portfolio-booking-category-option { font-family: 'Cairo', sans-
 .portfolio-about .portfolio-about-profile-copy :where(*),
 .portfolio-about .portfolio-about-project-card :where(*) { text-align: start !important; }
 html[lang=en] .portfolio-shell :is(h1, h2, h3, h4, h5, h6) {
-  font-family: 'Syne', sans-serif;
-  font-weight: 900;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: -.025em;
   line-height: 1.25;
